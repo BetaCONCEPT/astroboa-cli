@@ -1,0 +1,33 @@
+The astroboa-cli gem provides a command line interface to astroboa platform and astroboa apps management.  
+
+It has easy to use commands for installing astroboa platform, creating new repositories, taking backups and deploying your ruby apps directly to astroboa.
+
+== Install as a gem in your ruby environment
+
+Run at the command prompt:
+
+> gem install astroboa-cli
+ 
+To see the available commands:
+
+	$ astroboa-cli help
+
+To get help for a particular command:
+
+	$ astroboa-cli help <command>
+
+e.g. astroboa-cli help server
+
+To get help for a particular subcommand:
+
+	$ astroboa-cli help <command:subcommand>
+
+e.g. astroboa-cli help server:install
+
+
+LICENSE
+-------
+Released under the LGPL license; see the files LICENSE, COPYING and COPYING.LESSER. 
+
+   
+
