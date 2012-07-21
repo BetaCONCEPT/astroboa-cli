@@ -95,6 +95,9 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     # run with the ruby provided by torquebox
     ENV['JRUBY_HOME'] = File.join(server_config['install_dir'], 'torquebox', 'jruby')
     
+    # set jruby opts so that jruby runs in 1.9 mode
+    ENV['JRUBY_OPTS'] = '--1.9'
+    
     # don't send the gemfile from the current app
     ENV.delete('BUNDLE_GEMFILE')
     
