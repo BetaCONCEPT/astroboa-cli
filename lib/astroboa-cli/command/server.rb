@@ -15,14 +15,13 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   
   # server:install
   #
-  # Installs and setups astroboa server for production use. 
-  # Astroboa will be installed in the specified directory.
+  # Installs and setups astroboa server.
   # Use the install command only for the initial installation. If you want to upgrade see 'astroboa-cli help server:upgrade'
   # Before you run the install command check the following requirements: 
-  # + You should have already installed java 1.6 and jruby 1.6.7 or above
-  # + You are running this command from jruby version 1.6.7 or later
+  # + You should have already installed java 1.6 and jruby 1.6.7.2 or later
+  # + You are running this command from jruby version 1.6.7.2 or later
   # + You should have the unzip command. It is required for unzipping the downloaded packages
-  # + If you choose a database other than derby then the database should be already installed and running
+  # + If you choose a database other than derby then the database should be already installed and running and you should know the db admin account password
   #
   # -i, --install_dir INSTALLATION_DIRECTORY    # The full path to the directory into which to install astroboa # Default is '/opt/astroboa' in linux and '$HOME/astroboa' in mac os x and windows
   # -r, --repo_dir REPOSITORIES_DIRECTORY       # The full path of the directory that will contain the repositories configuration and data # Default is $installation_dir/repositories
@@ -30,7 +29,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # -d, --database DATABASE_VENDOR              # Select which database to use for data persistense # Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1 # Default is derby
   # -s, --database_server DATABASE_SERVER_IP    # Specify the database server ip or FQDN (e.g 192.168.1.100 or postgres.localdomain.vpn) # Default is localhost # Not required if db is derby (it will be ignored)
   # -u, --database_admin DB_ADMIN_USER          # The user name of the database administrator # If not specified it will default to 'postgres' for postgresql db # Not required if db is derby (it will be ignored) 
-  # -p, --database_admin_password PASSWORD      # The password of the database administrator # Defaults to empty string # Not required if database is derby (it will be ignored) 
+  # -p, --database_admin_password PASSWORD      # The password of the database administrator # Defaults to empty string # Not required if database is derby (it will be ignored)
   #
   def install
     @torquebox_download_url = 'http://www.astroboa.org/releases/astroboa/latest/torquebox-dist-2.0.3-bin.zip'
