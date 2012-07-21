@@ -7,7 +7,6 @@ require 'rbconfig'
 require 'progressbar'
 require 'net/http'
 require 'uri'
-require 'zip/zip'
 require 'yaml'
   
 # install and setup astroboa server
@@ -183,11 +182,13 @@ private
     java_ok?
     
     # Check if the proper version of jruby is running
-    #jruby_ok?
+    jruby_ok?
     
     # Check if user has set the jruby home with the provided option or whether we can retrieve it through rbconfig 
     #check_jruby_home
     
+    # check if unzip command is available
+    check_if_unzip_is_installed
   end
   
   
@@ -302,18 +303,18 @@ RUBY_VERSION_MESSAGE
     display "Check Astroboa identities repository : OK"
     
     # since the astroboa user is the same as the astroboa-cli user we can also check the environment variables
-    if mac_os_x?
-      error "#{problem_message} Environment variable 'ASTROBOA_HOME' is not set. Check that your .bash_profile has run and it properly exports the 'ASTROBOA_HOME' environment variable" unless ENV['ASTROBOA_HOME']
-      error "#{problem_message} Environment variable 'ASTROBOA_REPOSITORIES_HOME' is not set. Check that your .bash_profile has run and it properly exports the 'ASTROBOA_REPOSITORIES_HOME' environment variable" unless ENV['ASTROBOA_REPOSITORIES_HOME'] 
-      error "#{problem_message} Environment variable 'JBOSS_HOME' is not set. Check that your .bash_profile has run and it properly exports the 'JBOSS_HOME' environment variable" unless ENV['JBOSS_HOME']
-      display "Check existence of required environment variables : OK"
-      
-      display "Check consistency between environment variables and Astroboa Server Settings File #{get_server_conf_file} ", false
-      error "#{problem_message} Missmatch of Astroboa installation dir in environmet variable 'ASTROBOA_HOME' (#{ENV['ASTROBOA_HOME']}) and server settings (#{server_config['install_dir']})" unless server_config['install_dir'] == ENV['ASTROBOA_HOME']
-      error "#{problem_message} Missmatch of repositories dir in environmet variable 'ASTROBOA_REPOSITORIES_HOME' (#{ENV['ASTROBOA_REPOSITORIES_HOME']}) and server config settings (#{server_config['repos_dir']})" unless server_config['repos_dir'] == ENV['ASTROBOA_REPOSITORIES_HOME']
-      error "#{problem_message} The mandatory repository 'identities' is not configured in server settings. Use the command 'repository:create identities' to create it." unless repository?(server_config, 'identities')
-      display ": OK"
-    end
+    # if mac_os_x?
+    #       error "#{problem_message} Environment variable 'ASTROBOA_HOME' is not set. Check that your .bash_profile has run and it properly exports the 'ASTROBOA_HOME' environment variable" unless ENV['ASTROBOA_HOME']
+    #       error "#{problem_message} Environment variable 'ASTROBOA_REPOSITORIES_HOME' is not set. Check that your .bash_profile has run and it properly exports the 'ASTROBOA_REPOSITORIES_HOME' environment variable" unless ENV['ASTROBOA_REPOSITORIES_HOME'] 
+    #       error "#{problem_message} Environment variable 'JBOSS_HOME' is not set. Check that your .bash_profile has run and it properly exports the 'JBOSS_HOME' environment variable" unless ENV['JBOSS_HOME']
+    #       display "Check existence of required environment variables : OK"
+    #       
+    #       display "Check consistency between environment variables and Astroboa Server Settings File #{get_server_conf_file} ", false
+    #       error "#{problem_message} Missmatch of Astroboa installation dir in environmet variable 'ASTROBOA_HOME' (#{ENV['ASTROBOA_HOME']}) and server settings (#{server_config['install_dir']})" unless server_config['install_dir'] == ENV['ASTROBOA_HOME']
+    #       error "#{problem_message} Missmatch of repositories dir in environmet variable 'ASTROBOA_REPOSITORIES_HOME' (#{ENV['ASTROBOA_REPOSITORIES_HOME']}) and server config settings (#{server_config['repos_dir']})" unless server_config['repos_dir'] == ENV['ASTROBOA_REPOSITORIES_HOME']
+    #       error "#{problem_message} The mandatory repository 'identities' is not configured in server settings. Use the command 'repository:create identities' to create it." unless repository?(server_config, 'identities')
+    #       display ": OK"
+    #     end
     
     ok_message = "Astroboa installaion is ok.\nInstallation Path: #{server_config['install_dir']}\nRepository configuration and data are stored in: #{server_config['repos_dir']}"
     display ok_message
@@ -399,19 +400,7 @@ RUBY_VERSION_MESSAGE
     log.info "#{package} downloaded successfully"
   end
   
-  
-  def unzip_file (file, destination)
-    Zip::ZipFile.open(file) { |zip_file|
-     zip_file.each { |f|
-       next unless f.file?
-       f_path=File.join(destination, f.name)
-       FileUtils.mkdir_p(File.dirname(f_path))
-       zip_file.extract(f, f_path) unless File.exist?(f_path)
-     }
-    }
-  end
-  
-  
+    
   def install_server_components
     create_astroboa_user
     display "Installing server components to #{@install_dir}"
@@ -433,8 +422,9 @@ RUBY_VERSION_MESSAGE
   
   
   def install_torquebox
-    #unzip_torquebox
-    unzip_file(File.join(@install_dir, @torquebox_package), @install_dir)
+    unzip_torquebox
+    # we cannot use the ruby lib to unzip since it does not preserve file permissions
+    #unzip_file(File.join(@install_dir, @torquebox_package), @install_dir)
     create_torquebox_symbolic_link
     
     # may be that we do not this any more
@@ -442,7 +432,6 @@ RUBY_VERSION_MESSAGE
   end
   
   
-  # not used will be deleted
   def unzip_torquebox
     command = %(bash -c 'cd #{@install_dir} && #{extract_archive_command @torquebox_package} #{File.join(@install_dir, @torquebox_package)} 2>>#{log_file}')
     log.info "Installing torquebox with command: #{command}"
@@ -526,7 +515,7 @@ SETTINGS
   end
   
   
-  def install_astroboa_ear(boss_dir)
+  def install_astroboa_ear(jboss_dir)
     FileUtils.cp File.join(@install_dir, @astroboa_ear_package), File.join(jboss_dir, "standalone", "deployments")
     display "Copying astroboa ear package into jboss deployments: OK"
   end

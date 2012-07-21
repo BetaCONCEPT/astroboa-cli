@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 require 'yaml'
+require 'zip/zip'
 
 module AstroboaCLI
   module Util
@@ -154,6 +155,18 @@ module AstroboaCLI
       else
         fail "Unknown binary archive format: #{archive_name}"
       end
+    end
+    
+    
+    def unzip_file (file, destination)
+      Zip::ZipFile.open(file) { |zip_file|
+       zip_file.each { |f|
+         next unless f.file?
+         f_path=File.join(destination, f.name)
+         FileUtils.mkdir_p(File.dirname(f_path))
+         zip_file.extract(f, f_path) unless File.exist?(f_path)
+       }
+      }
     end
     
     
