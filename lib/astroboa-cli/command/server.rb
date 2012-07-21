@@ -613,10 +613,18 @@ SETTINGS
     # In mac os x astroboa is installed and run under the ownership of the user
     # that runs the installation command.
     # In linux a special user 'astroboa' and group 'astroboa' is created for owning an running astroboa.
-    # So we need to change the ownership of the installation dir to belong to user 'astroboa' and group 'astroboa'
+    # So we need to change the ownership of the installation dir and the repositories dir to belong to user 'astroboa' and group 'astroboa'
     if linux?
+      
       FileUtils.chown_R('astroboa', 'astroboa', @install_dir)
       display "Change (recursively) user and group owner of #{@install_dir} to 'astroboa': OK"
+      
+      # if repositories dir is outside the main install dir then we should change the ownership there too
+      unless File.join(@install_dir, 'repositories') == @repo_dir
+        FileUtils.chown_R('astroboa', 'astroboa', @repo_dir)
+        display "Change (recursively) user and group owner of #{@repo_dir} to 'astroboa': OK"
+      end
+      
     end
   end
   
