@@ -24,7 +24,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # + You should have the unzip command. It is required for unzipping the downloaded packages
   # + If you choose a database other than derby then the database should be already installed and running
   #
-  # -i, --install_dir INSTALLATION_DIRECTORY    # The full path to the directory into which to install astroboa # Default is /opt/astroboa
+  # -i, --install_dir INSTALLATION_DIRECTORY    # The full path to the directory into which to install astroboa # Default is '/opt/astroboa' in linux and '$HOME/astroboa' in mac os x and windows
   # -r, --repo_dir REPOSITORIES_DIRECTORY       # The full path of the directory that will contain the repositories configuration and data # Default is $installation_dir/repositories
   # -j, --jruby_home_dir JRUBY_HOME_DIR         # Specify the path to jruby installation directory # Use this option ONLY if you get an error message that the path cannot be retreived automatically 
   # -d, --database DATABASE_VENDOR              # Select which database to use for data persistense # Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1 # Default is derby
@@ -48,7 +48,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     @astroboa_version_download_url = 'http://www.astroboa.org/releases/astroboa/latest/ASTROBOA-VERSION'
     @astroboa_version_file = @astroboa_version_download_url.split("/").last
     
-    @install_dir = options[:install_dir] ||= '/opt/astroboa'
+    @install_dir = options[:install_dir] ||= mac_os_x? || windows? ? File.join(Dir.home, 'astroboa') : '/opt/astroboa'
     @repo_dir = options[:repo_dir] ||= File.join(@install_dir, "repositories")
     display "Starting astroboa server installation. Server will be installed in: #{@install_dir}. Repository Data and config will be stored in: #{@repo_dir}"
     
