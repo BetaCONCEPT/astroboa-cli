@@ -231,7 +231,8 @@ module AstroboaCLI
     
     def astroboa_running?
       server_config = get_server_configuration
-      system "ps -ef | grep #{server_config['install_dir']} | grep -vq grep"
+      jboss_dir = File.join(server_config['install_dir'], 'torquebox', 'jboss')
+      system %(ps -ef | grep "org.jboss.as.standalone -Djboss.home.dir=#{jboss_dir}" | grep -vq grep)
     end
     
         
