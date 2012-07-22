@@ -13,12 +13,18 @@ class AstroboaCLI::Command::Service < AstroboaCLI::Command::Base
   # Setups astroboa as a system service (daemon). 
   # It requires that you have already installed astroboa using 'astroboa-cli server:install'.
   # Astroboa service will automatically start on system boot. 
-  # If you want to disable astroboa service from automatically running on each boot then change the 'RunAtLoad' key to 'false' in '/Library/LaunchDaemons/com.betaconcept.astroboa.plist'
+  #
   # To start and stop astroboa when it is installed as a system service use 'astroboa-cli service:start' and 'astroboa-cli service:stop'
+  #
+  # IMPORTANT NOTICE:
+  # When astroboa runs as a service the internallly installed JRUBY version and GEMS are used instead of the JRUBY used to run astroboa-cli.
+  # When astroboa is started through 'server:start' command, the same JRUBY version and GEMS used by astroboa-cli will be used.
+  # This behaviour shields the production server from the ruby setup that the astroboa-cli user might have and even allows to test newer ruby versions and gems
+  # during development (run astroboa with server:start) and use more stable ones during production (setup astroboa as a service and run it through service:start).
   #
   # In MAC OS X astroboa is setup as a system launchd daemon.
   # Therefore, you must be authorized to use 'sudo' in order to use the 'service:setup' command.
-  #
+  # If you want to disable astroboa service from automatically running on each boot then change the 'RunAtLoad' key to 'false' in '/Library/LaunchDaemons/com.betaconcept.astroboa.plist'
   #
   # In linux astroboa is setup as an upstart service (requires ubuntu or debian or a linux distro that supports upstart)
   #

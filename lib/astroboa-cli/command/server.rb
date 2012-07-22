@@ -79,7 +79,15 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # server:start
   #
   # starts astroboa server as a background process.
+  #
+  # When astroboa is started through this command, the same JRUBY version and GEMS used by astroboa-cli will be used 
+  # for running the astroboa server and the deployed ruby apps. JRUBY will be configured to run in 1.9 mode.
+  #
   # It is recommented to use this command only during development and install astroboa as a service in production systems.
+  # When astroboa runs as a service the internallly installed JRUBY version and GEMS are used instead of the JRUBY used to run astroboa-cli.
+  # This shields the production server from the ruby setup that the astroboa-cli user might have and even allows to test newer ruby versions and gems
+  # during development and use more stable ones during production.
+  #
   # To find how to install and start / stop astroboa as a service see:
   # 'astroboa-cli help service:install'
   # 'astroboa-cli help service:start'
@@ -87,13 +95,13 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   #
   def start
     error 'astroboa is already running' if astroboa_running?
-    #jruby_ok?
+    jruby_ok?
     astroboa_installed?
     
     server_config = get_server_configuration
     
-    # run with the ruby provided by torquebox
-    ENV['JRUBY_HOME'] = File.join(server_config['install_dir'], 'torquebox', 'jruby')
+    # when NOT run as a service use the users jruby
+    ENV['JRUBY_HOME'] = RbConfig::CONFIG['prefix']
     
     # set jruby opts so that jruby runs in 1.9 mode
     ENV['JRUBY_OPTS'] = '--1.9'
@@ -164,7 +172,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # It also displays if astroboa is running
   #
   def check
-    #jruby_ok?
+    jruby_ok?
     astroboa_installed?
     display astroboa_running? ? 'astroboa is running' : 'astroboa is not running' 
   end
