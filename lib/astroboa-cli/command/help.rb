@@ -56,10 +56,12 @@ private
   end
   
   def help_for_command(name)
+    puts AstroboaCLI::Command.namespaces[name][:long_description] if AstroboaCLI::Command.namespaces[name]
+    puts
     command = AstroboaCLI::Command.commands[name]
-
+    
     if command
-      puts "Usage: astroboa #{command[:banner]}"
+      puts "Usage: astroboa-cli #{command[:banner]}"
 
       if command[:help].strip.length > 0
         command[:help].split("\n")[1..-1].each do |line|
@@ -74,7 +76,7 @@ private
             puts line
           end
         end
-        #puts command[:help].split("\n")[1..-1].join("\n")
+        
         puts
       end
     end

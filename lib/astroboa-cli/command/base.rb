@@ -44,15 +44,15 @@ module AstroboaCLI::Command
     attr_reader :log_file
 
     def initialize(args=[], options={})
-      # Check if the proper version of ruby is running
-      ruby_ok?
-      
       @args = args
       @options = options
       
       @log_file = '/tmp/astroboa-cli-log.txt'
       @log = Logger.new(@log_file)
       @log.level = Logger::INFO
+      
+      # Check if the proper version of ruby is running
+      ruby_ok?
     end
     
   protected
@@ -63,7 +63,8 @@ module AstroboaCLI::Command
 
       AstroboaCLI::Command.register_namespace(
         :name => klass.namespace,
-        :description => help.split("\n").first
+        :description => help.split("\n").first,
+        :long_description => help.split("\n")
       )
     end
   

@@ -333,7 +333,7 @@ module AstroboaCLI
       RUBY_VERSION_MESSAGE
 
       error ruby_wrong_version_message unless ruby_version_ok?
-      display "Checking if you are running ruby version is 1.9.x: OK"
+      #display "Checking if your ruby version is 1.9.x: OK"
     end
     
     

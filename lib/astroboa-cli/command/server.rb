@@ -25,7 +25,6 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   #
   # -i, --install_dir INSTALLATION_DIRECTORY    # The full path to the directory into which to install astroboa # Default is '/opt/astroboa' in linux and '$HOME/astroboa' in mac os x and windows
   # -r, --repo_dir REPOSITORIES_DIRECTORY       # The full path of the directory that will contain the repositories configuration and data # Default is $installation_dir/repositories
-  # -h, --ruby_home_dir RUBY_HOME_DIR           # Specify the path to your ruby installation directory # Use this option ONLY if you get an error message that the path cannot be retreived automatically 
   # -d, --database DATABASE_VENDOR              # Select which database to use for data persistense # Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1 # Default is derby
   # -s, --database_server DATABASE_SERVER_IP    # Specify the database server ip or FQDN (e.g 192.168.1.100 or postgres.localdomain.vpn) # Default is localhost # Not required if db is derby (it will be ignored)
   # -u, --database_admin DB_ADMIN_USER          # The user name of the database administrator # If not specified it will default to 'postgres' for postgresql db # Not required if db is derby (it will be ignored) 
@@ -78,20 +77,20 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   
   # server:start
   #
-  # starts astroboa server as a background process.
+  # starts astroboa server in the foreground or as a background process.
   #
-  # When astroboa is started through this command, the same JRUBY version and GEMS used by astroboa-cli will be used 
-  # for running the astroboa server and the deployed ruby apps. JRUBY will be configured to run in 1.9 mode.
+  # If you start it as a foreground process you can stop it by using Ctrl+c
+  # If you start is as a background process use 'astroboa-cli server:stop' to gracefully stop astroboa
   #
   # It is recommented to use this command only during development and install astroboa as a service in production systems.
-  # When astroboa runs as a service the internallly installed JRUBY version and GEMS are used instead of the JRUBY used to run astroboa-cli.
-  # This shields the production server from the ruby setup that the astroboa-cli user might have and even allows to test newer ruby versions and gems
-  # during development and use more stable ones during production.
+  # If you install astroboa as a service it will be automatically started every time your system starts.
   #
   # To find how to install and start / stop astroboa as a service see:
   # 'astroboa-cli help service:install'
   # 'astroboa-cli help service:start'
   # 'astroboa-cli help service:stop'
+  #
+  # -b, --background  # Starts astroboa in the background. Use 'astroboa-cli server:stop' to gracefully stop it
   #
   def start
     error 'astroboa is already running' if astroboa_running?
@@ -100,8 +99,11 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     
     server_config = get_server_configuration
     
-    # when NOT run as a service use the users jruby
-    ENV['JRUBY_HOME'] = RbConfig::CONFIG['prefix']
+    # Astroboa runs inside torquebox (a special version of JBOSS AS 7) which requires jruby
+    # Torquebox comes with the required jruby installed.
+    # If the env variable 'JRUBY_HOME' exists torquebox does not use ts own jruby but that pointed by the env variable
+    # So we unset the variable (just in case it is set) to enforce torquebox to use its own jruby
+    ENV.delete('JRUBY_HOME')
     
     # set jruby opts so that jruby runs in 1.9 mode
     ENV['JRUBY_OPTS'] = '--1.9'
@@ -121,15 +123,25 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     
     if mac_os_x?
       # enforce to login as the user that owns the astroboa installation in order to run astroboa server
+      # otherwise problems with file permitions may be encoundered
       install_dir = server_config['install_dir']
       uid = File.stat(install_dir).uid
       astroboa_user = Etc.getpwuid(uid).name
       error "Please login as user: #{astroboa_user} to run astroboa" unless user == astroboa_user
       
-      display "Astroboa is starting in the background..."
-      display "You can check the log file with 'tail -f #{log_file}'"
-      display "When server startup has finished access astroboa console at: http://localhost:8080/console"
-      exec %(#{command} > /dev/null 2>&1 &)  
+      if options[:background]
+        display "Astroboa is starting in the background..."
+        display "You can check the log file with 'tail -f #{log_file}'"
+        display "When server startup has finished access astroboa console at: http://localhost:8080/console"
+        exec %(#{command} > /dev/null 2>&1 &)
+        #exec %(#{command} &), :pgroup => true, [:in, :out, :err] => '/dev/null'
+      else
+        display "Astroboa is starting in the foreground..."
+        display "When server startup has finished access astroboa console at: http://localhost:8080/console"
+        sleep 5
+        exec %(#{command})
+      end
+      
     end
      
     if linux?
@@ -137,6 +149,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
       display "You can check the log file with 'tail -f #{log_file}'"
       display "When server startup has finished access astroboa console at: http://localhost:8080/console"
       exec %(su - astroboa -c "#{command} > /dev/null 2>&1 &")
+      Process.detach
     end
     
   end
@@ -190,9 +203,6 @@ private
     # check if the proper version of java is installed
     java_ok?
     
-    # Check if user has set the ruby home with the provided option or whether we can retrieve it through rbconfig 
-    check_ruby_home
-    
     # check if unzip command is available
     check_if_unzip_is_installed
   end
@@ -202,16 +212,6 @@ private
     message = "astroboa server installation is currently supported for linux and mac os x"
     error message if RbConfig::CONFIG['host_os'] =~ /mswin|windows|cygwin/i
     display "Checking if operating system is supported: OK"
-  end
-  
-  
-  def check_ruby_home
-    # get ruby home from command option or rbconfig 'prefix'
-    options[:ruby_home_dir] ||= RbConfig::CONFIG['prefix']
-    
-    message = "We could not retrieve your ruby home dir. Please run 'astroboa server:install --ruby_home_dir my_ruby_home_dir' to manually specify the path to your ruby installation"
-    error message unless options[:ruby_home_dir]
-    display "Checking if I can find your ruby home dir: OK" 
   end
   
   
