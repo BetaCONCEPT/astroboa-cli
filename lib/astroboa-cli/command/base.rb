@@ -44,6 +44,9 @@ module AstroboaCLI::Command
     attr_reader :log_file
 
     def initialize(args=[], options={})
+      # Check if the proper version of ruby is running
+      ruby_ok?
+      
       @args = args
       @options = options
       

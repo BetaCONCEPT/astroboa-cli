@@ -3,7 +3,8 @@
 require 'astroboa-cli/command/base'
 require 'fileutils'
 require 'nokogiri'
-require 'arjdbc'
+#require 'arjdbc'
+require 'pg'
 
 # create, delete, backup, restore repositories
 class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
@@ -70,7 +71,7 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
       # create postgres database
       unless server_configuration['database'] == 'derby'
         begin
-          create_postgresql_db(server_configuration, database_name, repo_dir)
+          create_postgresql_db(server_configuration, database_name)
         rescue
           FileUtils.rm_r repo_dir, :secure=>true
           error "Removing #{repo_dir} and Exiting..."
@@ -371,65 +372,6 @@ private
       if node.text?
         node.content = node.content.strip
       end
-    end
-  end
-  
-  
-  def get_postgresql_config(server_configuration)
-    database_admin = server_configuration['database_admin']
-    database_admin_password = server_configuration['database_admin_password']
-    database_server = server_configuration['database_server']
-    return database_admin, database_admin_password, database_server
-  end
-  
-  
-  def create_postgresql_db(server_configuration, database_name, repo_dir)
-    database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
-    begin
-      ActiveRecord::Base.establish_connection(
-        :adapter    => 'jdbcpostgresql',
-        :database   => "postgres", 
-        :username   => database_admin,
-        :password   => database_admin_password,
-        :host       => database_server, 
-        :port       => 5432)
-      ActiveRecord::Base.connection.create_database database_name, :encoding => 'unicode'
-      ActiveRecord::Base.connection.disconnect!
-      ActiveRecord::Base.remove_connection
-      
-      display %(Create Postges database "#{database_name}" : OK)
-    rescue ActiveRecord::StatementInvalid => e
-      if e.message =~ /database "#{database_name}" already exists/
-        display "Database #{database_name} exists. You may run the command with --db_name repo_db_name to specify a different database name"
-      else
-        display %(An error has occured during the creation of postgres database "#{database_name}")
-        display %(The error trace is \n #{e.backtrace.join("\n")})
-      end
-      
-      raise
-    end
-  end
-  
-  
-  def drop_postgresql_db(server_configuration, database_name)
-    database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
-    begin
-      ActiveRecord::Base.establish_connection(
-        :adapter    => 'jdbcpostgresql',
-        :database   => "postgres", 
-        :username   => database_admin,
-        :password   => database_admin_password,
-        :host       => database_server, 
-        :port       => 5432)
-      ActiveRecord::Base.connection.drop_database database_name
-      ActiveRecord::Base.connection.disconnect!
-      ActiveRecord::Base.remove_connection
-      
-      display %(Delete Postges database "#{database_name}" : OK)
-    rescue ActiveRecord::StatementInvalid => e
-      display %(An error has occured during the deletion of postgres database "#{database_name}")
-      display %(The error trace is \n #{e.backtrace.join("\n")})
-      raise
     end
   end
   

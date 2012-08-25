@@ -18,14 +18,14 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # Installs and setups astroboa server.
   # Use the install command only for the initial installation. If you want to upgrade see 'astroboa-cli help server:upgrade'
   # Before you run the install command check the following requirements: 
-  # + You should have already installed java 1.6 and jruby 1.6.7.2 or later
-  # + You are running this command from jruby version 1.6.7.2 or later
+  # + You should have already installed java 1.6 and ruby 1.9.x
+  # + You are running this command from ruby version 1.9.x or later
   # + You should have the unzip command. It is required for unzipping the downloaded packages
   # + If you choose a database other than derby then the database should be already installed and running and you should know the db admin account password
   #
   # -i, --install_dir INSTALLATION_DIRECTORY    # The full path to the directory into which to install astroboa # Default is '/opt/astroboa' in linux and '$HOME/astroboa' in mac os x and windows
   # -r, --repo_dir REPOSITORIES_DIRECTORY       # The full path of the directory that will contain the repositories configuration and data # Default is $installation_dir/repositories
-  # -j, --jruby_home_dir JRUBY_HOME_DIR         # Specify the path to jruby installation directory # Use this option ONLY if you get an error message that the path cannot be retreived automatically 
+  # -h, --ruby_home_dir RUBY_HOME_DIR           # Specify the path to your ruby installation directory # Use this option ONLY if you get an error message that the path cannot be retreived automatically 
   # -d, --database DATABASE_VENDOR              # Select which database to use for data persistense # Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1 # Default is derby
   # -s, --database_server DATABASE_SERVER_IP    # Specify the database server ip or FQDN (e.g 192.168.1.100 or postgres.localdomain.vpn) # Default is localhost # Not required if db is derby (it will be ignored)
   # -u, --database_admin DB_ADMIN_USER          # The user name of the database administrator # If not specified it will default to 'postgres' for postgresql db # Not required if db is derby (it will be ignored) 
@@ -95,7 +95,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   #
   def start
     error 'astroboa is already running' if astroboa_running?
-    jruby_ok?
+
     astroboa_installed?
     
     server_config = get_server_configuration
@@ -172,7 +172,6 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # It also displays if astroboa is running
   #
   def check
-    jruby_ok?
     astroboa_installed?
     display astroboa_running? ? 'astroboa is running' : 'astroboa is not running' 
   end
@@ -191,11 +190,8 @@ private
     # check if the proper version of java is installed
     java_ok?
     
-    # Check if the proper version of jruby is running
-    jruby_ok?
-    
-    # Check if user has set the jruby home with the provided option or whether we can retrieve it through rbconfig 
-    #check_jruby_home
+    # Check if user has set the ruby home with the provided option or whether we can retrieve it through rbconfig 
+    check_ruby_home
     
     # check if unzip command is available
     check_if_unzip_is_installed
@@ -209,85 +205,13 @@ private
   end
   
   
-  def runs_with_jruby?
-    (defined? RUBY_ENGINE && RUBY_ENGINE == 'jruby') || RUBY_PLATFORM == "java"
-  end
-  
-  
-  def jruby_version_ok?
-    return false unless defined? JRUBY_VERSION
-    
-    jruby_version_numbers = JRUBY_VERSION.split(".")
-
-    return false unless jruby_version_numbers[0].to_i == 1 && 
-      ((jruby_version_numbers[1].to_i == 6 && jruby_version_numbers[2].to_i >= 7) || jruby_version_numbers[1].to_i == 7)
-    return true
-  end 
-  
-  def ruby_version_ok?
-    return false unless defined? RUBY_VERSION
-    
-    ruby_version_numbers = RUBY_VERSION.split(".")
-
-    return false unless ruby_version_numbers[0].to_i == 1 && ruby_version_numbers[1].to_i >= 9
-    return true
-  end
-  
-  def check_jruby_home
+  def check_ruby_home
     # get ruby home from command option or rbconfig 'prefix'
-    options[:jruby_home_dir] ||= RbConfig::CONFIG['prefix']
+    options[:ruby_home_dir] ||= RbConfig::CONFIG['prefix']
     
-    message = "We could not retrieve your jruby home dir. Please run 'astroboa server:install --jruby_home_dir my_ruby_home_dir' to manually specify the path to your jruby installation"
-    error message unless options[:jruby_home_dir]
+    message = "We could not retrieve your ruby home dir. Please run 'astroboa server:install --ruby_home_dir my_ruby_home_dir' to manually specify the path to your ruby installation"
+    error message unless options[:ruby_home_dir]
     display "Checking if I can find your ruby home dir: OK" 
-  end
-  
-  
-  def jruby_ok?
-    install_jruby_with_rvm_message =<<RVM_INSTALL_MESSAGE
-We recommend to install jruby using the "RVM" utility command
-To install "rvm" for a single user (i.e. the user that will run astroboa-cli) login as the user and run the following command:
-
-user$ curl -L get.rvm.io | bash -s stable 
-
-For multi-user installation and detailed rvm installation instructions check: https://rvm.io/rvm/install/    
-
-After RVM has been installed run the following commands to install jruby:
-rvm install jruby-1.6.7
-rvm use jruby-1.6.7
-RVM_INSTALL_MESSAGE
-
-    jruby_not_running_message =<<JRUBY_MESSAGE
-It seems that you are not running jruby.
-Astroboa requires jruby version 1.6.7 or above. 
-Please install jruby version 1.6.7 or above and run the astroboa-cli command again
-
-#{install_jruby_with_rvm_message}
-JRUBY_MESSAGE
-    
-    jruby_wrong_version_message =<<JRUBY_VERSION_MESSAGE
-It seems that you are not running the required jruby version
-Your jruby version is: #{JRUBY_VERSION}
-Astroboa requires jruby version 1.6.7 or above. 
-Please install jruby version 1.6.7 or above and run the astroboa-cli command again
-
-#{install_jruby_with_rvm_message}
-JRUBY_VERSION_MESSAGE
-
-    ruby_wrong_version_message =<<RUBY_VERSION_MESSAGE
-It seems that you are not running jruby in 1.9 mode.
-Your current Ruby Version is: #{RUBY_VERSION} 
-Astroboa requires your jruby to run in 1.9 mode. 
-To make jruby run in 1.9 mode add the following to your .bash_profile
-export JRUBY_OPTS=--1.9 
-
-You need to logout and login or run "source ~/.bash_profile" in order to activate this setting
-RUBY_VERSION_MESSAGE
-    
-    error jruby_not_running_message unless runs_with_jruby?
-    error jruby_wrong_version_message unless jruby_version_ok?
-    error ruby_wrong_version_message unless ruby_version_ok?
-    display "Checking if you are running jruby version 1.6.7 or above in 1.9 mode: OK"
   end
   
   
