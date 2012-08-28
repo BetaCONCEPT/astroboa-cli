@@ -2,6 +2,7 @@
 
 require 'yaml'
 require 'zip/zip'
+require 'nokogiri'
 
 module AstroboaCLI
   module Util
@@ -256,8 +257,41 @@ module AstroboaCLI
     end
     
     
-    def repository?(server_config, repo_name)
+    def repository_in_server_config?(server_config, repo_name)
       return server_config.has_key?('repositories') && server_config['repositories'].has_key?(repo_name)
+    end
+    
+    
+    def repository_in_repos_config?(repos_dir, repository_name)
+      astroboa_repos_config = File.join(repos_dir, "repositories-conf.xml")
+
+      repo_conf = nil
+
+      if File.exists? astroboa_repos_config
+        File.open(astroboa_repos_config, 'r') do |f|
+          repo_conf = Nokogiri::XML(f) do |config|
+            config.noblanks
+          end
+        end
+        
+        repo_nodes = repo_conf.xpath(%(//repository[@id="#{repository_name}"]))
+        return true if !repo_nodes.empty?
+      end
+
+      return false
+    end
+    
+    
+    # check that repo is consistently configured, 
+    # i.e Its directory exists AND it is specified in server configuration AND its repo config file exists
+    def repository?(server_configuration, repository_name)
+      repos_dir = server_configuration['repos_dir']
+      astroboa_dir = server_configuration['install_dir']
+      repo_dir = File.join(repos_dir, repository_name)
+      
+      return true if File.exists?(repo_dir) && repository_in_repos_config?(repos_dir, repository_name) && repository_in_server_config?(server_configuration, repository_name)
+      
+      return false;
     end
     
     
