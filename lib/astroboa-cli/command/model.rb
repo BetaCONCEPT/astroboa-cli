@@ -47,6 +47,10 @@ class AstroboaCLI::Command::Model < AstroboaCLI::Command::Base
       error "Please specify the repository name. Usage: model:associate REPOSITORY MODEL_DIR"
     end
     
+    server_configuration = get_server_configuration
+    
+    error "Repository '#{repository}' does not exist or it is not properly configured (use astroboa-cli repository:list to see available repositories)" unless repository?(server_configuration, repository)
+    
     if model_dir = args.shift
       model_dir = model_dir.strip
     else
@@ -60,7 +64,6 @@ class AstroboaCLI::Command::Model < AstroboaCLI::Command::Base
     # If you do not specify the 'MODEL_DIR' then domain model is expected to be found inside current directory in 'model/dsl' and 'model/xsd'
     MSG
     
-    server_configuration = get_server_configuration
     astroboa_dir = server_configuration['install_dir']
     
     display "Looking for XML Schemas..."
@@ -79,15 +82,26 @@ class AstroboaCLI::Command::Model < AstroboaCLI::Command::Base
       FileUtils.cp_r File.join(astroboa_dir, 'schemas'), tmp_dir
       
       tmp_schema_dir = File.join(tmp_dir, 'schemas')
-      FileUtils.cp_r File.join(xsd_dir, '.'), tmp_schema_dir
+      FileUtils.cp_r Dir.glob(File.join(xsd_dir, '*.xsd')), tmp_schema_dir
       
+      # Validate schemas in domain model
       Dir[File.join(xsd_dir, '*.xsd')].each  do |schema_path|
         schema_file = schema_path.split('/').last
         
+        display
+        display '-------------------------------------------------'
         display "Validating XML Schema: #{schema_file}"
         error "Please correct the schema file '#{schema_file}' and run the command again" unless domain_model_valid? schema_file, tmp_schema_dir
-        
       end
+      
+      # copy schemas to repository schemas directory
+      repository_schema_dir = File.join(server_configuration['repos_dir'], repository, 'astroboa_schemata')
+      FileUtils.cp_r Dir.glob(File.join(xsd_dir, '*.xsd')), repository_schema_dir
+      
+      display
+      display '-------------------------------------------------'
+      display '-------------------------------------------------'
+      display "Repository '#{repository}' associated to XML Schemas in '#{xsd_dir}': OK"
     else
       display "No XML Schemas Found"
     end
@@ -136,7 +150,8 @@ private
       xml_schema_validator = Nokogiri::XML::Schema(xml_schema_grammar)
 
       errors = xml_schema_validator.validate(domain_model_doc)
-      if errors
+      
+      unless errors.empty?
         puts "Check if domain model is a valid XML Schema: Not valid XML Schema"
         errors.each do |error|
           puts error.message
@@ -150,12 +165,12 @@ private
       # i.e. it properly loads and uses all its external schema dependencies
       begin
         external_schemas_validator = Nokogiri::XML::Schema(File.read(domain_model_file))
-        puts 'Check if domain model is properly loading and using external schemas (i.e. astroboa model schemas + user defined schemas): OK'
+        puts 'Check if domain model properly loads and uses external schemas (i.e. astroboa model schemas + user defined schemas): OK'
         true
-      catch Exception e
+      rescue Exception => e
         puts 'Check if domain model is properly loading and using external schemas (i.e. astroboa model schemas + user defined schemas): Errors found!'
-        puts external_schemas_validator.errors
-        puts e.detail
+        puts external_schemas_validator.errors if external_schemas_validator
+        puts e.message
         false
       end
 
