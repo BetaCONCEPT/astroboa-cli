@@ -246,7 +246,7 @@ private
     #       display "Check consistency between environment variables and Astroboa Server Settings File #{get_server_conf_file} ", false
     #       error "#{problem_message} Missmatch of Astroboa installation dir in environmet variable 'ASTROBOA_HOME' (#{ENV['ASTROBOA_HOME']}) and server settings (#{server_config['install_dir']})" unless server_config['install_dir'] == ENV['ASTROBOA_HOME']
     #       error "#{problem_message} Missmatch of repositories dir in environmet variable 'ASTROBOA_REPOSITORIES_HOME' (#{ENV['ASTROBOA_REPOSITORIES_HOME']}) and server config settings (#{server_config['repos_dir']})" unless server_config['repos_dir'] == ENV['ASTROBOA_REPOSITORIES_HOME']
-    #       error "#{problem_message} The mandatory repository 'identities' is not configured in server settings. Use the command 'repository:create identities' to create it." unless repository?(server_config, 'identities')
+    #       error "#{problem_message} The mandatory repository 'identities' is not configured in server settings. Use the command 'repository:create identities' to create it." unless repository_in_server_config?(server_config, 'identities')
     #       display ": OK"
     #     end
     
