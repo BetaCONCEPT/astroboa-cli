@@ -47,26 +47,26 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
     error "Please use at least 3 english word characters (a-zA-Z0-9_) without spaces for the repository name" unless repository_name =~ /^\w{3,}$/
   
     server_configuration = get_server_configuration
-    repos_dir = server_configuration["repos_dir"]
-    astroboa_dir = server_configuration["install_dir"]
-    repo_dir = File.join(repos_dir, repository_name)
-    error "Repository #{repository_name} already exists in directory #{repo_dir}" if File.exists? repo_dir
-    error "Creation failed. A configuration for repository '#{repository_name}' exists in repositories configuration file (#{File.join(repos_dir, 'repositories-conf.xml')})" if repo_configured_in_repos_config? repos_dir, repository_name
-    error "Creation failed. A configuration for repository '#{repository_name}' exists in server configuration file (#{get_server_conf_file})" if repository?(server_configuration, repository_name)
+    
+    check_repo_existense(server_configuration, repository_name)
     
     database_name = options[:db_name] ||= repository_name
     
     begin
+      astroboa_dir = server_configuration['install_dir']
+      repos_dir = server_configuration['repos_dir']
+      repo_dir = File.join(repos_dir, repository_name)
       FileUtils.mkdir_p(repo_dir)
       display "Create repository dir '#{repo_dir}': OK"
     
-      internal_repo_dir = File.join(repo_dir, "repository")
-      FileUtils.mkdir(internal_repo_dir)
-      display %(Create dir '#{internal_repo_dir}': OK)
-    
-      schema_dir = File.join(repo_dir, "repository", "astroboa_schemata")
+      schema_dir = File.join(repo_dir, "astroboa_schemata")
       FileUtils.mkdir(schema_dir)
       display %(Create dir '#{schema_dir}': OK)
+      
+      # This is not required any more TO BE DELETED
+      #internal_repo_dir = File.join(repo_dir, "repository")
+      #FileUtils.mkdir(internal_repo_dir)
+      #display %(Create dir '#{internal_repo_dir}': OK)
     
       # create postgres database
       unless server_configuration['database'] == 'derby'
@@ -88,7 +88,7 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
       add_repo_conf_to_server_conf(server_configuration, repository_name)
        
     rescue Exception => e
-      display %(An error has occured \n The error is: #{e.backtrace.join("\n")})
+      display %(An error has occured \n The error is: '#{e.to_s}' \n The error trace is: \n #{e.backtrace.join("\n")})
       display %(Repository configuration, the db and the related directories will be removed)
       unconfigure_astroboa_repo(repos_dir, repository_name)
       FileUtils.rm_r repo_dir, :secure=>true
@@ -124,7 +124,7 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
     repos_dir = server_configuration["repos_dir"]
     repo_dir = File.join(repos_dir, repository_name)
     error "Repository #{repository_name} does not exist in directory #{repo_dir}" unless File.exists? repo_dir
-    error %(Repository #{repository_name} does not exist in astroboa server configuration file "#{get_server_conf_file}") unless repository?(server_configuration, repository_name) 
+    error %(Repository #{repository_name} does not exist in astroboa server configuration file "#{get_server_conf_file}") unless repository_in_server_config?(server_configuration, repository_name) 
     
     # we treat 'identities' repo very carefully
     if repository_name == 'identities'
@@ -176,7 +176,7 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
       repository_name = repository_name.strip
       
       # check if repo exists
-      error %(Repository #{repository_name} does not exist") unless repository?(server_configuration, repository_name)
+      error %(Repository #{repository_name} does not exist") unless repository_in_server_config?(server_configuration, repository_name)
       repo = server_configuration['repositories'][repository_name]
       display "Repository Name:                 #{repo['id']}"
       repo['localized_labels'].split(',').each do |localized_label|
@@ -277,6 +277,12 @@ private
     # The central 'identities' repository stores its own authentication / authorization data 
     repository['identity-store-repository-id'] = 'identities' unless repository_name == 'identities' 
     
+    repo_conf.root << repository
+    
+    # delete namespace of repository node so that it will be serialized as 
+    # <repository> instead of <ns:repository> which is not recognized by astroboa SAX parser
+    repository.namespace = nil
+    
     localization = Nokogiri::XML::Node.new "localization", repo_conf
     localized_labels_map.each do |locale, label|
       label_node = Nokogiri::XML::Node.new "label", repo_conf
@@ -312,7 +318,6 @@ private
     
     repository << jcrCache
     
-    repo_conf.root << repository
     strip_text_nodes(repo_conf)
     new_astroboa_repos_config = "#{astroboa_repos_config}.new"
     File.open(new_astroboa_repos_config, 'w') do |f|
@@ -332,6 +337,7 @@ private
   
   
   def unconfigure_astroboa_repo(repos_dir, repository_name)
+    display "Removing configuration of repository #{repository_name} from repositories configuration file..."
     astroboa_repos_config = File.join(repos_dir, "repositories-conf.xml")
     if File.exists? astroboa_repos_config
       repo_conf = nil
@@ -358,7 +364,8 @@ private
         FileUtils.mv new_astroboa_repos_config, astroboa_repos_config
         display %(Unconfigure repository #{repository_name} : OK)
       else
-        error "cannot find the configuration settings for repository '#{repository_name}' in configuration file: '#{astroboa_repos_config}'"
+        display "WARNING: configuration settings for repository '#{repository_name}' do not exist in repositories configuration file: '#{astroboa_repos_config}'"
+        display "You may ignore the above warning if you tried to create a new repo and an error has occured before its creation."
       end
     else
       error "cannot find repositories configuration file: '#{astroboa_repos_config}'"
@@ -395,7 +402,7 @@ private
   
   
   def delete_repo_conf_from_server_conf(server_configuration, repository_name)
-    if repository?(server_configuration, repository_name)
+    if repository_in_server_config?(server_configuration, repository_name)
       server_configuration['repositories'].delete(repository_name)
       save_server_configuration(server_configuration)
       display "Remove configuration settings for repository '#{repository_name}' from server settings file : OK"
@@ -404,25 +411,12 @@ private
     end
   end
   
-  
-  def repo_configured_in_repos_config?(repos_dir, repository_name)
-    astroboa_repos_config = File.join(repos_dir, "repositories-conf.xml")
-    
-    repo_conf = nil
-    
-    if File.exists? astroboa_repos_config
-      File.open(astroboa_repos_config, 'r') do |f|
-        repo_conf = Nokogiri::XML(f) do |config|
-          config.noblanks
-        end
-      end
-      
-      repo_nodes = repo_conf.xpath(%(//repository[@id="#{repository_name}"]))
-      return true if !repo_nodes.empty?
-    end
-    
-    return false
-    
+  def check_repo_existense(server_configuration, repository_name)
+    repos_dir = server_configuration['repos_dir']
+    repo_dir = File.join(repos_dir, repository_name)
+    error "Repository #{repository_name} already exists in directory #{repo_dir}" if File.exists? repo_dir
+    error "Creation failed. A configuration for repository '#{repository_name}' exists in repositories configuration file (#{File.join(repos_dir, 'repositories-conf.xml')})" if repository_in_repos_config? repos_dir, repository_name
+    error "Creation failed. A configuration for repository '#{repository_name}' exists in server configuration file (#{get_server_conf_file})" if repository_in_server_config?(server_configuration, repository_name)
   end
   
 end # class Repository 
