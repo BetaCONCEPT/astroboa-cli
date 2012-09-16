@@ -95,8 +95,8 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # 'astroboa-cli help service:start'
   # 'astroboa-cli help service:stop'
   #
-  # -b, --background  # Starts astroboa in the background. Use 'astroboa-cli server:stop' to gracefully stop it
-  # -j, --jvm_options # java options for starting the astroboa jvm 
+  # -b, --background                # Starts astroboa in the background. Use 'astroboa-cli server:stop' to gracefully stop it
+  # -j, --jvm_options JVM_OPTIONS   # java options for starting the astroboa jvm 
   #
   def start
     error 'astroboa is already running' if astroboa_running?
@@ -144,14 +144,14 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
       display "You are running astroboa-cli as user: #{process_user} and astroboa should run as user: #{astroboa_user}"
       display "We need sudo privileges in order to do this. Lets check..."
       if process_uid != 0
-        error<<-MSG 
+        error <<-MSG 
         You are not running with sudo privileges. Please run astroboa-cli with sudo
         If you installed ruby with rbenv you need to install 'rbenv-sudo' plugin and then run 'rbenv sudo astroboa-cli server:start'
         display "For 'rbenv-sudo' check ruby installation instructions at https://github.com/betaconcept/astroboa-cli
         MSG
       else
         Process::UID.change_privilege(astroboa_uid)
-        display "Running with sudo: OK" if user =! 'root'
+        display "Running with sudo: OK" if user != 'root'
         display "You are root: OK" if user == 'root'
       end
     end

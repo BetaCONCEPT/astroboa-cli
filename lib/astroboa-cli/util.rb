@@ -238,7 +238,7 @@ module AstroboaCLI
     
     def check_if_running_with_sudo
         display "You need sudo privileges to run this command. Checking..."
-        error<<-MSG unless running_with_sudo?
+        error <<-MSG unless running_with_sudo?
         You are not running with sudo privileges. Please run astroboa-cli with sudo
         If you installed ruby with rbenv you need to install 'rbenv-sudo' plugin and then run 'rbenv sudo astroboa-cli server:start'
         display "For 'rbenv-sudo' check ruby installation instructions at https://github.com/betaconcept/astroboa-cli
