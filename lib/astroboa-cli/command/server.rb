@@ -43,11 +43,16 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     @astroboa_setup_templates_download_url = 'http://www.astroboa.org/releases/astroboa/latest/astroboa-setup-templates.zip'
     @astroboa_setup_templates_package = @astroboa_setup_templates_download_url.split("/").last
     
+    @schemas_download_url = 'http://www.astroboa.org/releases/astroboa/latest/schemas.zip'
+    @schemas_package = @schemas_download_url.split("/").last
+    
     @astroboa_version_download_url = 'http://www.astroboa.org/releases/astroboa/latest/ASTROBOA-VERSION'
     @astroboa_version_file = @astroboa_version_download_url.split("/").last
     
     @install_dir = options[:install_dir] ||= mac_os_x? || windows? ? File.join(Dir.home, 'astroboa') : '/opt/astroboa'
+    @install_dir = File.expand_path @install_dir # if provided path was not absolute expand it
     @repo_dir = options[:repo_dir] ||= File.join(@install_dir, "repositories")
+    @repo_dir = File.expand_path @repo_dir # if provided path was not absolute expand it
     display "Starting astroboa server installation. Server will be installed in: #{@install_dir}. Repository Data and config will be stored in: #{@repo_dir}"
     
     @database = options[:database] ||= 'derby'
@@ -91,6 +96,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # 'astroboa-cli help service:stop'
   #
   # -b, --background  # Starts astroboa in the background. Use 'astroboa-cli server:stop' to gracefully stop it
+  # -j, --jvm_options # java options for starting the astroboa jvm 
   #
   def start
     error 'astroboa is already running' if astroboa_running?
@@ -116,40 +122,50 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     
     command = File.join(server_config['install_dir'], 'torquebox', 'jboss', 'bin', 'standalone.sh')
     
-    user = ENV['USER'] if mac_os_x? || linux?
-    user = ENV['USERNAME'] if windows?
     
     log_file = File.join(server_config['install_dir'], 'torquebox', 'jboss', 'standalone', 'log', 'server.log')
     
-    if mac_os_x?
-      # enforce to login as the user that owns the astroboa installation in order to run astroboa server
-      # otherwise problems with file permitions may be encoundered
-      install_dir = server_config['install_dir']
-      uid = File.stat(install_dir).uid
-      astroboa_user = Etc.getpwuid(uid).name
-      error "Please login as user: #{astroboa_user} to run astroboa" unless user == astroboa_user
-      
-      if options[:background]
-        display "Astroboa is starting in the background..."
-        display "You can check the log file with 'tail -f #{log_file}'"
-        display "When server startup has finished access astroboa console at: http://localhost:8080/console"
-        exec %(#{command} > /dev/null 2>&1 &)
-        #exec %(#{command} &), :pgroup => true, [:in, :out, :err] => '/dev/null'
+    # We should always run astroboa as the user that owns the astroboa installation
+    # otherwise problems with file permissions may be encountered.
+    # If the current process owner is not the astroboa owner then we check if process owner 
+    # is the super user (i.e astroboa-cli is run with sudo).
+    # If process owner is super user we change the process owner 
+    # to be the astroboa user (we can do that since process run with sudo privileges) and we run astroboa.
+    # If process owner is not super user we give a notice that astroboa-cli should be executed with sudo and exit. 
+    user = ENV['USER'] if mac_os_x? || linux?
+    user = ENV['USERNAME'] if windows?
+    install_dir = server_config['install_dir']
+    astroboa_uid = File.stat(install_dir).uid
+    astroboa_user = Etc.getpwuid(astroboa_uid).name
+    process_uid = Process.uid
+    process_user = Etc.getpwuid(process_uid).name
+    
+    if astroboa_uid != process_uid
+      display "You are running astroboa-cli as user: #{process_user} and astroboa should run as user: #{astroboa_user}"
+      display "We need sudo privileges in order to do this. Lets check..."
+      if process_uid != 0
+        error<<-MSG 
+        You are not running with sudo privileges. Please run astroboa-cli with sudo
+        If you installed ruby with rbenv you need to install 'rbenv-sudo' plugin and then run 'rbenv sudo astroboa-cli server:start'
+        display "For 'rbenv-sudo' check ruby installation instructions at https://github.com/betaconcept/astroboa-cli
+        MSG
       else
-        display "Astroboa is starting in the foreground..."
-        display "When server startup has finished access astroboa console at: http://localhost:8080/console"
-        sleep 5
-        exec %(#{command})
+        Process::UID.change_privilege(astroboa_uid)
+        display "Running with sudo: OK" if user =! 'root'
+        display "You are root: OK" if user == 'root'
       end
-      
     end
-     
-    if linux?
+        
+    if options[:background]
       display "Astroboa is starting in the background..."
       display "You can check the log file with 'tail -f #{log_file}'"
       display "When server startup has finished access astroboa console at: http://localhost:8080/console"
-      exec %(su - astroboa -c "#{command} > /dev/null 2>&1 &")
-      Process.detach
+      exec %(#{command} > /dev/null 2>&1 &)
+      #exec %(#{command} &), :pgroup => true, [:in, :out, :err] => '/dev/null'
+    else
+      display "Astroboa is starting in the foreground..."
+      display "When server startup has finished access astroboa console at: http://localhost:8080/console"
+      exec %(#{command})
     end
     
   end
@@ -194,6 +210,11 @@ private
   
   def check_installation_requirements
     display "Checking installation requirements"
+    
+    # if OS is linux or [OS is mac and install_dir / repo_dir is not writable by current user] 
+    # then astroboa-cli should run with sudo in order to have the required privileges to write files
+    check_if_running_with_sudo if linux? || (mac_os_x? && !(dir_writable?(@install_dir) && dir_writable?(@repo_dir)))
+    
     # do not proceed if astroboa is already installed
     check_if_astroboa_exists_in_install_dirs
     
@@ -294,6 +315,9 @@ private
     
     # download astroboa setup templates
     download_package(@astroboa_setup_templates_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_setup_templates_package)) == 11030750
+    
+    # download astroboa schemas
+    download_package(@schemas_download_url, @install_dir) unless File.size?(File.join(@install_dir, @schemas_download_url)) == 28426
   end
   
   
@@ -361,7 +385,7 @@ private
     #unzip_file(File.join(@install_dir, @torquebox_package), @install_dir)
     create_torquebox_symbolic_link
     
-    # may be that we do not this any more
+    # may be that we do not need this any more
     # add_torquebox_env_settings
   end
   
@@ -415,9 +439,17 @@ SETTINGS
   end
   
   
+  def unzip_schemas
+    unzip_file(File.join(@install_dir, @schemas_package), @install_dir)
+  end
+  
+  
   def install_astroboa
     # unzip the templates first
     unzip_file(File.join(@install_dir, @astroboa_setup_templates_package), @install_dir)
+    
+    # unzip astroboa schemas that are used for user schema validation
+    unzip_schemas
     
     jboss_dir = File.join(@install_dir, "torquebox", "jboss")
     jboss_modules_dir = File.join(jboss_dir, "modules")
@@ -541,13 +573,26 @@ SETTINGS
       'localized_labels' => 'en:User and App Identities,el:Ταυτότητες Χρηστών και Εφαρμογών'
     }
     AstroboaCLI::Command::Repository.new([repo_name], repo_config).create
-    display 'Create Central Identities and Apps Repository with name "identities" : OK'
+    display "Create Central 'Identities and Apps' Repository with name 'identities' : OK"
   end
   
   def set_astroboa_owner
-    # In mac os x astroboa is installed and run under the ownership of the user
-    # that runs the installation command.
-    # In linux a special user 'astroboa' and group 'astroboa' is created for owning an running astroboa.
+    # In mac os x astroboa is installed and run under the ownership of the user that runs the installation command. 
+    # If installation is done with sudo then we need to change the ownership of astroboa installation to the current user.
+    if mac_os_x? && running_with_sudo?
+      user = ENV['USER']
+      FileUtils.chown_R(user, nil, @install_dir)
+      display "Change (recursively) user owner of #{@install_dir} to #{user}: OK"
+      
+      # if repositories dir is outside the main install dir then we should change the ownership there too
+      unless File.join(@install_dir, 'repositories') == @repo_dir
+        FileUtils.chown_R(user, nil, @repo_dir)
+        display "Change (recursively) user owner of #{@repo_dir} to #{user}: OK"
+      end
+      
+    end
+    
+    # In linux a special user 'astroboa' and group 'astroboa' is created for owning a running astroboa.
     # So we need to change the ownership of the installation dir and the repositories dir to belong to user 'astroboa' and group 'astroboa'
     if linux?
       
@@ -572,6 +617,9 @@ SETTINGS
     display "Removed astroboa ear package"
     
     FileUtils.rm File.join(@install_dir, @astroboa_setup_templates_package)
+    display "Removed setup templates package"
+    
+    FileUtils.rm File.join(@install_dir, @schemas_package)
     display "Removed setup templates package"
     
     display "Installation cleanup: OK"

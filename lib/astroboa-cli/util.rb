@@ -230,6 +230,31 @@ module AstroboaCLI
       RbConfig::CONFIG['host_os'] =~ /linux/i
     end
     
+    
+    def running_with_sudo?
+      Process.uid == 0
+    end
+    
+    
+    def check_if_running_with_sudo
+        display "You need sudo privileges to run this command. Checking..."
+        error<<-MSG unless running_with_sudo?
+        You are not running with sudo privileges. Please run astroboa-cli with sudo
+        If you installed ruby with rbenv you need to install 'rbenv-sudo' plugin and then run 'rbenv sudo astroboa-cli server:start'
+        display "For 'rbenv-sudo' check ruby installation instructions at https://github.com/betaconcept/astroboa-cli
+        MSG
+        
+        display "Running with sudo privileges: OK"
+    end
+    
+    
+    def dir_writable?(dir)
+      until FileTest.directory?(dir)
+        dir = File.dirname(dir)
+      end
+      File.writable? dir
+    end
+    
     def astroboa_running?
       server_config = get_server_configuration
       jboss_dir = File.join(server_config['install_dir'], 'torquebox', 'jboss')

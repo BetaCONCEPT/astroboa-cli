@@ -55,6 +55,11 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
     begin
       astroboa_dir = server_configuration['install_dir']
       repos_dir = server_configuration['repos_dir']
+      
+      # if OS is linux or [OS is mac and repos_dir is not writable by current user] 
+      # then astroboa-cli should run with sudo in order to have the required privileges to write files
+      check_if_running_with_sudo if linux? || (mac_os_x? && !dir_writable?(repos_dir))
+      
       repo_dir = File.join(repos_dir, repository_name)
       FileUtils.mkdir_p(repo_dir)
       display "Create repository dir '#{repo_dir}': OK"
@@ -120,8 +125,13 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
     
     server_configuration = get_server_configuration
     
-    # check if repo exists
     repos_dir = server_configuration["repos_dir"]
+    
+    # if OS is linux or [OS is mac and repos_dir is not writable by current user] 
+    # then astroboa-cli should run with sudo in order to have the required privileges to remove files
+    check_if_running_with_sudo if linux? || (mac_os_x? && !dir_writable?(repos_dir))
+    
+    # check if repo exists
     repo_dir = File.join(repos_dir, repository_name)
     error "Repository #{repository_name} does not exist in directory #{repo_dir}" unless File.exists? repo_dir
     error %(Repository #{repository_name} does not exist in astroboa server configuration file "#{get_server_conf_file}") unless repository_in_server_config?(server_configuration, repository_name) 
