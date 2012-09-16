@@ -59,9 +59,9 @@ class AstroboaCLI::Command::Model < AstroboaCLI::Command::Base
     
     error <<-MSG unless Dir.exists? model_dir
     Directory #{model_dir} does not exist. 
-    # If you specify the 'MODEL_DIR' then your DSL model definition is expected to be 
-    # in 'MODEL_DIR/dsl' and your XML Schemas to be in 'MODEL_DIR/xsd' 
-    # If you do not specify the 'MODEL_DIR' then domain model is expected to be found inside current directory in 'model/dsl' and 'model/xsd'
+    If you specify the 'MODEL_DIR' then your DSL model definition is expected to be 
+    in 'MODEL_DIR/dsl' and your XML Schemas to be in 'MODEL_DIR/xsd' 
+    If you do not specify the 'MODEL_DIR' then domain model is expected to be found inside current directory in 'model/dsl' and 'model/xsd'
     MSG
     
     astroboa_dir = server_configuration['install_dir']
