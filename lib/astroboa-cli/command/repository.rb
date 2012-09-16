@@ -3,8 +3,6 @@
 require 'astroboa-cli/command/base'
 require 'fileutils'
 require 'nokogiri'
-#require 'arjdbc'
-require 'pg'
 
 # create, delete, backup, restore repositories
 class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
@@ -47,6 +45,19 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
     error "Please use at least 3 english word characters (a-zA-Z0-9_) without spaces for the repository name" unless repository_name =~ /^\w{3,}$/
   
     server_configuration = get_server_configuration
+    
+    # try to load the 'pg' library if repository is backed by postgres 
+    unless server_configuration['database'] == 'derby'
+      error <<-MSG unless gem_available?('pg')
+      You should manually install the 'pg' gem if you want to create repositories backed by postgres
+      astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require 
+      to have a local postgres already installed, which in turn is too much if you do not care about postgres.
+    	In *Ubuntu Linux* run first 'sudo apt-get install libpq-dev' and then run 'gem install pg'.
+    	For MAC OS x read http://deveiate.org/code/pg/README-OS_X_rdoc.html to learn how to install the 'pg' gem.
+      MSG
+      
+      require 'pg'
+    end
     
     check_repo_existense(server_configuration, repository_name)
     

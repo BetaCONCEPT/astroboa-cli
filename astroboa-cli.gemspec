@@ -24,13 +24,9 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
     
   s.require_paths = ["lib"]
-  #s.add_runtime_dependency 'torquebox', '2.0.3'
   s.add_runtime_dependency 'progressbar'
   s.add_runtime_dependency 'rubyzip'
   s.add_runtime_dependency 'erubis'
   s.add_runtime_dependency 'nokogiri', '>= 1.5.5'
-  s.add_runtime_dependency 'pg', '>= 0.14.0'
-  #s.add_runtime_dependency 'activerecord'
-  #s.add_runtime_dependency 'activerecord-jdbcpostgresql-adapter', '>= 1.2.2'
   s.executables = ["astroboa-cli"]
 end

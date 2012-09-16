@@ -226,6 +226,15 @@ private
     
     # check if unzip command is available
     check_if_unzip_is_installed
+    
+    # check if 'pg' gem is installed if repositories will be backed by postgres
+    error <<-MSG if @database.split("-").first == "postgres" && !gem_available?('pg')
+    You should manually install the 'pg' gem if you want to create repositories backed by postgres
+    astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require 
+    to have a local postgres already installed, which in turn is too much if you do not care about postgres.
+  	In *Ubuntu Linux* run first 'sudo apt-get install libpq-dev' and then run 'gem install pg'.
+  	For MAC OS x read http://deveiate.org/code/pg/README-OS_X_rdoc.html to learn how to install the 'pg' gem.
+    MSG
   end
   
   

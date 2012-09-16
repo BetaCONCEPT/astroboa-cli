@@ -255,6 +255,16 @@ module AstroboaCLI
       File.writable? dir
     end
     
+    
+    def gem_available?(name)
+       Gem::Specification.find_by_name(name)
+    rescue Gem::LoadError
+       false
+    rescue
+       Gem.available?(name)
+    end
+    
+    
     def astroboa_running?
       server_config = get_server_configuration
       jboss_dir = File.join(server_config['install_dir'], 'torquebox', 'jboss')
