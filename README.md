@@ -77,7 +77,7 @@ With `rbenv-sudo` installed you can install astroboa with the following command:
 # How to install ruby
 
 astroboa-cli requires ruby version 1.9.x.
-If you do not have ruby already installed or you machine comes with an older version, here is some quick info on two easy ways to install and maintain your ruby environment.
+If you do not have ruby already installed or your operating system comes with an older version, here is some quick info on two easy ways to install and maintain your ruby environment.
 
 You can easily install ruby with `rbenv` or `rvm` utility programs.
 
