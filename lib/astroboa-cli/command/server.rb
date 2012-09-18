@@ -53,11 +53,21 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     @install_dir = File.expand_path @install_dir # if provided path was not absolute expand it
     @repo_dir = options[:repo_dir] ||= File.join(@install_dir, "repositories")
     @repo_dir = File.expand_path @repo_dir # if provided path was not absolute expand it
-    display "Starting astroboa server installation. Server will be installed in: #{@install_dir}. Repository Data and config will be stored in: #{@repo_dir}"
+    display <<-MSG.gsub(/^ {4}/, '')
+    Starting astroboa server installation 
+    Server will be installed in: #{@install_dir} 
+    Repository Data and config will be stored in: #{@repo_dir}
+    MSG
     
     @database = options[:database] ||= 'derby'
-    db_error_message = "The selected database '#{@database}' is not supported. Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1"
+    
+    db_error_message =<<-MSG.gsub(/^ {4}/, '')
+    The selected database '#{@database}' is not supported. 
+    Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1
+    MSG
+    
     error db_error_message unless %W(derby postgres-8.2 postgres-8.3 postgres-8.4 postgres-9.0 postgres-9.1).include?(@database)
+    
     if @database.split("-").first == "postgres"
       @database_admin = options[:database_admin] ||= "postgres"
       @database_admin_password = options[:database_admin_password] ||= ""
@@ -66,7 +76,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
       @database_admin_password = ""
     end
     @database_server = options[:database_server] ||= "localhost"
-    display "repository database is #{@database} accessed with user: '#{@database_admin}'"
+    display "repository database is '#{@database}' accessed with user: '#{@database_admin}'"
     display "Database server IP or FQDN is: #{@database_server}" if @database.split("-").first == "postgres"
     # check if all requirement are fulfilled before proceeding with the installation 
     check_installation_requirements
@@ -123,7 +133,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     command = File.join(server_config['install_dir'], 'torquebox', 'jboss', 'bin', 'standalone.sh')
     
     
-    log_file = File.join(server_config['install_dir'], 'torquebox', 'jboss', 'standalone', 'log', 'server.log')
+    jboss_log_file = File.join(server_config['install_dir'], 'torquebox', 'jboss', 'standalone', 'log', 'server.log')
     
     # We should always run astroboa as the user that owns the astroboa installation
     # otherwise problems with file permissions may be encountered.
@@ -144,10 +154,10 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
       display "You are running astroboa-cli as user: #{process_user} and astroboa should run as user: #{astroboa_user}"
       display "We need sudo privileges in order to do this. Lets check..."
       if process_uid != 0
-        error <<-MSG 
+        error <<-MSG.gsub(/^ {8}/, '')
         You are not running with sudo privileges. Please run astroboa-cli with sudo
         If you installed ruby with rbenv you need to install 'rbenv-sudo' plugin and then run 'rbenv sudo astroboa-cli server:start'
-        display "For 'rbenv-sudo' check ruby installation instructions at https://github.com/betaconcept/astroboa-cli
+        For 'rbenv-sudo' check ruby installation instructions at https://github.com/betaconcept/astroboa-cli
         MSG
       else
         Process::UID.change_privilege(astroboa_uid)
@@ -158,7 +168,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
         
     if options[:background]
       display "Astroboa is starting in the background..."
-      display "You can check the log file with 'tail -f #{log_file}'"
+      display "You can check the log file with 'tail -f #{jboss_log_file}'"
       display "When server startup has finished access astroboa console at: http://localhost:8080/console"
       exec %(#{command} > /dev/null 2>&1 &)
       #exec %(#{command} &), :pgroup => true, [:in, :out, :err] => '/dev/null'
@@ -228,7 +238,7 @@ private
     check_if_unzip_is_installed
     
     # check if 'pg' gem is installed if repositories will be backed by postgres
-    error <<-MSG if @database.split("-").first == "postgres" && !gem_available?('pg')
+    error <<-MSG.gsub(/^ {4}/, '') if @database.split("-").first == "postgres" && !gem_available?('pg')
     You should manually install the 'pg' gem if you want to create repositories backed by postgres
     astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require 
     to have a local postgres already installed, which in turn is too much if you do not care about postgres.
@@ -378,9 +388,10 @@ private
   
   def create_astroboa_user
     # in mac os x we do not create a separate user
+    user = 'astroboa'
     if linux?
-      display "Adding usergroup and user 'astroboa'"
-      command = "groupadd -f astroboa 2>>#{log_file}"
+      display "Adding usergroup and user '#{user}'"
+      command = "groupadd -f #{user} 2>>#{log_file}"
       error "Failed to create usergroup astroboa. Check logfile #{log_file}" unless process_os_command command
       command = "useradd -m -g #{user} #{user} 2>>#{log_file}"
       error "Failed to create user astroboa. Check logfile #{log_file}" unless process_os_command command
@@ -629,7 +640,7 @@ SETTINGS
     display "Removed setup templates package"
     
     FileUtils.rm File.join(@install_dir, @schemas_package)
-    display "Removed setup templates package"
+    display "Removed schemas package"
     
     display "Installation cleanup: OK"
   end

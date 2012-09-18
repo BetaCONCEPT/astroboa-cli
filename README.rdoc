@@ -9,7 +9,13 @@ It has easy to use commands for installing astroboa platform, creating new repos
 
 - OPTIONAL: In MAC OS X is strongly recommended to install 'brew' package manager as well as XCODE and XCODE command line tools in order to be able to compile new packages and ruby native extensions.
 
-- Ruby 1.9.x. If you need to install or upgrade your ruby read the following section on 'how to install ruby'. 
+- Java 1.6.x is required for running astroboa server.
+	On *MAC OS X up to Lion* is  pre-installed. On Mountain Lion (even in upgrades) is not installed. 
+	To install it on *Mountain Lion* open a terminal and run: 'java -version'. A window will pop-up prompting you to install Java SE in order to open “java”, click “Install” to get the latest version.
+	On *Ubuntu Linux* run: 
+	
+- Ruby 1.9.x is required for installing/running the astroboa-cli itself. 
+	If you need to install or upgrade your ruby read the following section on 'how to install ruby'. 
 
 - libxml2 and libxslt.
 	astroboa-cli uses nokogiri gem which depends on libxml2 and libxslt.
@@ -19,7 +25,7 @@ It has easy to use commands for installing astroboa platform, creating new repos
 	
 - OPTIONAL: Manually install 'pg' gem if you want to install/setup astroboa to work with postgres database.
 	If you do not specify a database during astroboa installation then derby db is used which is the best option for testing and development. 
-	In you are ok with derby db then you do not need to install the 'pg' gem.
+	If you are ok with derby db then you do not need to install the 'pg' gem.
 	If you want to set up a production environment then choose postgres db during astroboa installation. 
 	In this case you should first manually install the 'pg' gem.
 	astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require to have a local postgres already installed which in turn is too much if you do not care about postgres.
