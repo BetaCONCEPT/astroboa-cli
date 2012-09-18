@@ -65,12 +65,17 @@ e.g.  `$ astroboa-cli help server:install`
 If you use astroboa-cli in LINUX then server installation/running and repository installation/removal always require sudo privileges because astroboa is installed and runs as user 'astroboa'.
 In MAC OS X no special user is created and thus sudo privileges are only required if you want to install astroboa to a directory that you do not own.
 astroboa-cli checks the required privileges for each command and will produce an error message if not met. 
+
 If your ruby is installed with `rbenv` then **you need to also install** the `rbenv-sudo` plugin to overcome the problem of using rbenv installed rubies with sudo.
 With `rbenv-sudo` installed you can install astroboa with the following command:
 
 	$ rbenv sudo astroboa-cli server:install
 
-*Check the instructions that follow to learn how to install rbenv-sudo*
+*Check the instructions on the following section about installing ruby to also learn how to install rbenv-sudo*
+
+If you manage your rubies with `rvm` the you should use the `rvmsudo` command
+
+	$ rvmsudo astroboa-cli server:install
 
 
 
@@ -170,12 +175,15 @@ If you prefer to use 'rvm' as your ruby management utility use the following com
 
 	$ curl -L get.rvm.io | bash -s stable 
 
-For multi-user installation and detailed rvm installation instructions check: https://rvm.io/rvm/install/    
+For multi-user installation and detailed rvm installation instructions check: https://rvm.io/rvm/install/
+To use `sudo` to run astroboa-cli (and any other ruby-based program) you should use `rvmsudo`  
 
 After 'rvm' has been installed run the following commands to install ruby 1.9.3-p194:
 
 	$ rvm install 1.9.3-p194
 	$ rvm use 1.9.3-p194
+	
+run: `$ rvm use 1.9.3-p194 --default` to make 1.9.3-p194 your default ruby
 
 # LICENSE
 -------
