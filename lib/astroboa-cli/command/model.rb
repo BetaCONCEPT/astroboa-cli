@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+require 'astroboa-cli/command/base'
 require 'nokogiri'
 require 'fileutils'
   
