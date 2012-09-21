@@ -96,9 +96,10 @@ On **Mac OS X**  to install `rbenv` and `ruby-build` using the [Homebrew](http:/
 	$ brew update
 	$ brew install rbenv
 	$ brew install ruby-build
-
-Then add the following line in your .bash_profile:
 	$ echo 'if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi' >> ~/.bash_profile
+
+The last command adds to your .bash_profile the code that initializes rbenv
+	
 
 
 ---
