@@ -467,20 +467,20 @@ module AstroboaCLI
       database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
       begin
         conn = PG.connect(
-          :host     => database_server, 
-          :port     => '5432', 
-          :dbname   => 'postgres', 
-          :user     => database_admin, 
-          :password => database_admin_password)
+          host:     database_server, 
+          port:     '5432', 
+          dbname:   'postgres', 
+          user:     database_admin, 
+          password: database_admin_password)
 
         # check if db exists
         res = conn.exec("SELECT COUNT(*) FROM pg_database WHERE datname=$1",[database_name])
-        unless res.entries[0]['count'] == 0
+        unless res.entries[0]['count'].to_i == 0
           display "Database #{database_name} exists. You may run the command with --db_name repo_db_name to specify a different database name" 
           raise
         end
 
-        res = conn.exec("CREATE DATABASE $1 ENCODING 'UNICODE'", [database_name])
+        res = conn.exec("CREATE DATABASE #{database_name} ENCODING 'UNICODE'")
         if res.result_status == PG::Result::PGRES_COMMAND_OK
           display %(Create Postges database "#{database_name}" : OK)
         else
