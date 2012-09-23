@@ -339,11 +339,8 @@ private
     
     repository << jcrCache
     
-    strip_text_nodes(repo_conf)
     new_astroboa_repos_config = "#{astroboa_repos_config}.new"
-    File.open(new_astroboa_repos_config, 'w') do |f|
-      repo_conf.write_xml_to(f, :indent => 1, :indent_text => "\t", :encoding => 'UTF-8')
-    end
+    write_xml repo_conf, new_astroboa_repos_config
     
     # save old config file
     if conf_exists
@@ -372,11 +369,9 @@ private
       
       if !repo_nodes.empty?
         repo_nodes.remove
-        strip_text_nodes(repo_conf)
+        
         new_astroboa_repos_config = "#{astroboa_repos_config}.new"
-        File.open(new_astroboa_repos_config, 'w') do |f|
-          repo_conf.write_xml_to(f, :indent => 1, :indent_text => "\t", :encoding => 'UTF-8')
-        end
+        write_xml repo_conf, new_astroboa_repos_config
       
         current_date = DateTime.now().strftime('%Y-%m-%dT%H.%M')
         FileUtils.cp astroboa_repos_config, "#{astroboa_repos_config}.#{current_date}"
@@ -392,17 +387,7 @@ private
       error "cannot find repositories configuration file: '#{astroboa_repos_config}'"
     end
   end
-  
-  
-  # remove leading and trailing white space from XML Document text nodes
-  def strip_text_nodes(xml_doc)
-    xml_doc.traverse do |node|
-      if node.text?
-        node.content = node.content.strip
-      end
-    end
-  end
-  
+    
   
   def add_repo_conf_to_server_conf(server_configuration, repository_name)
     repo_domain_name = options[:domain_name] ||= 'localhost:8080'

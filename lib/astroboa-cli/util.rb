@@ -540,6 +540,27 @@ module AstroboaCLI
     end
 
 
+    # remove leading and trailing white space from XML Document text nodes
+    # xml_doc should be a Nokogiri::XML:Document or Nokogiri::XML::Node
+    def strip_text_nodes xml_doc
+      xml_doc.traverse do |node|
+        if node.text?
+          node.content = node.content.strip
+        end
+      end
+    end
+    
+    # write XML document to a file
+    # document should be a Nokogiri::XML:Document or Nokogiri::XML::Node
+    def write_xml document, file_full_path
+      strip_text_nodes document
+
+      File.open(file_full_path, 'w') do |f|
+        document.write_xml_to(f, :indent => 1, :indent_text => "\t", :encoding => 'UTF-8')
+      end
+    end
+    
+    
     # Not used because only works in jruby, TO BE REMOVED
     def create_postgresql_db_with_jdbc(server_configuration, database_name, repo_dir)
       database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
@@ -591,5 +612,6 @@ module AstroboaCLI
         raise
       end
     end
+    
   end
 end
