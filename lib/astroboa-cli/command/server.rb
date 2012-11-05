@@ -327,7 +327,7 @@ private
     download_package(@torquebox_version_download_url, @install_dir) unless File.size?(File.join(@install_dir, @torquebox_version_file)) == 6
     
     # download astroboa ear
-    download_package(@astroboa_ear_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_ear_package)) == 64585240
+    download_package(@astroboa_ear_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_ear_package)) == 63783475
     
     # download astroboa version file
     download_package(@astroboa_version_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_version_file)) == 15
