@@ -105,7 +105,7 @@ The last command adds to your .bash_profile the code that initializes rbenv
 ---
 On **Ubuntu Linux** to install `rbenv` and `ruby-build` using `apt` package manager and `git` do (it has been tested in Ubuntu 12.04):
 
-	$ sudo apt-get install zlib1g-dev openssl libopenssl-ruby1.9.1 libssl-dev libruby1.9.1 libreadline-dev git-core
+	$ sudo apt-get install build-essential zlib1g-dev openssl libopenssl-ruby1.9.1 libssl-dev libruby1.9.1 libreadline-dev git-core
 	$ cd
 	$ git clone git://github.com/sstephenson/rbenv.git .rbenv
 
@@ -140,9 +140,9 @@ Restart your shell to apply the changes in your bashrc or bash_profile
 
 	$ exec $SHELL
 
-To install ruby version 1.9.3-p194 do:
+To install ruby version 1.9.3-p286 do:
 
-	$ rbenv install 1.9.3-p194
+	$ rbenv install 1.9.3-p286
 	$ rbenv rehash
 
 
@@ -150,22 +150,22 @@ To install ruby version 1.9.3-p194 do:
 
 To set the global version of Ruby to be used in all your shells do:
 	
-	$ rbenv global 1.9.3-p194
+	$ rbenv global 1.9.3-p286
 
-To set ruby 1.9.3-p194 as a local per-project ruby version by writing the version name to an .rbenv-version file in the current project directory do:
+To set ruby 1.9.3-p286 as a local per-project ruby version by writing the version name to an .rbenv-version file in the current project directory do:
 
-	$ rbenv local 1.9.3-p194
+	$ rbenv local 1.9.3-p286
 
-To set ruby 1.9.3-p194 as the version to be used only in the current shell (sets the RBENV_VERSION environment variable in your shell) do:
+To set ruby 1.9.3-p286 as the version to be used only in the current shell (sets the RBENV_VERSION environment variable in your shell) do:
 
-	$ rbenv shell 1.9.3-p194
+	$ rbenv shell 1.9.3-p286
 
 Test your ruby installation:
 
-	$ rbenv global 1.9.3-p194
+	$ rbenv global 1.9.3-p286
 	$ ruby -v
 
-On MAC you will get output similar to this: ruby 1.9.3p194 (2012-04-20 revision 35410) [x86_64-darwin12.0.0]
+On MAC you will get output similar to this: ruby 1.9.3p286 (2012-04-20 revision 35410) [x86_64-darwin12.0.0]
 
 For more information about `rbenv`, `ruby-build` and `rbenv-sudo` check https://github.com/sstephenson/rbenv, https://github.com/sstephenson/ruby-build and https://github.com/dcarley/rbenv-sudo
 
@@ -179,12 +179,12 @@ If you prefer to use 'rvm' as your ruby management utility use the following com
 For multi-user installation and detailed rvm installation instructions check: https://rvm.io/rvm/install/
 To use `sudo` to run astroboa-cli (and any other ruby-based program) you should use `rvmsudo`  
 
-After 'rvm' has been installed run the following commands to install ruby 1.9.3-p194:
+After 'rvm' has been installed run the following commands to install ruby 1.9.3-p286:
 
-	$ rvm install 1.9.3-p194
-	$ rvm use 1.9.3-p194
+	$ rvm install 1.9.3-p286
+	$ rvm use 1.9.3-p286
 	
-run: `$ rvm use 1.9.3-p194 --default` to make 1.9.3-p194 your default ruby
+run: `$ rvm use 1.9.3-p286 --default` to make 1.9.3-p286 your default ruby
 
 # LICENSE
 -------
