@@ -1,6 +1,7 @@
 # encoding: UTF-8
 
 require 'astroboa-cli/command/base'
+require 'fileutils'
 require 'rbconfig'
 
 # setup astroboa as a system service (daemon) that automatically starts on boot
@@ -108,8 +109,11 @@ private
       launchd_config_template = File.join(astroboa_dir, 'astroboa-setup-templates', 'AstroboaDaemon.plist.template')
       context = {:astroboa_dir => astroboa_dir, :java_home => ENV['JAVA_HOME'], :jruby_home => File.join(server_configuration['install_dir'], 'torquebox', 'jruby'), :astroboa_user => astroboa_user}
       render_template_to_file(launchd_config_template, context, temp_launchd_config)
-      error "Failed to copy launchd config file to #{LAUNCHD_CONFIG}" unless process_os_command "sudo cp #{temp_launchd_config} #{LAUNCHD_CONFIG}"
-      error "Failed to remove temporary launchd config file #{temp_launchd_config}" unless process_os_command "rm #{temp_launchd_config}"
+      unless FileUtils.cp temp_launchd_config LAUNCHD_CONFIG
+        FileUtils.rm temp_launchd_config
+        error "Failed to copy launchd config file to #{LAUNCHD_CONFIG}"
+      end
+      error "Failed to remove temporary launchd config file #{temp_launchd_config}" unless FileUtils.rm temp_launchd_config
       display "Generating launchd config file '#{LAUNCHD_CONFIG}': OK"
     end
     
