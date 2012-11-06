@@ -1,4 +1,4 @@
-# encoding: UTF-8
+# encoding: utf-8
 
 # This file contains modifications of work covered by the following copyright and  
 # permission notice:

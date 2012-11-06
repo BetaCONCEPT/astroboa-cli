@@ -1,4 +1,4 @@
-# encoding: UTF-8
+# encoding: utf-8
 
 # Astroboa CLI has been inspired by the design of Heroku client 
 # and contains some adapted code (mainly in the base.rb and command.rb files)
