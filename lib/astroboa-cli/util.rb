@@ -497,7 +497,9 @@ module AstroboaCLI
           display "Database #{database_name} exists. You may run the command with --db_name repo_db_name to specify a different database name" 
           raise
         end
-
+        
+        display "Check that database #{database_name} does not exist: OK"
+        
         res = conn.exec("CREATE DATABASE #{database_name} ENCODING 'UNICODE'")
         if res.result_status == PG::Result::PGRES_COMMAND_OK
           display %(Create Postges database "#{database_name}" : OK)
@@ -510,9 +512,10 @@ module AstroboaCLI
         display "The error is: #{res.error_message}" 
         display %(The error trace is \n #{e.backtrace.join("\n")})
         raise
-      else
+      rescue
         display %(An error has occured during the creation of postgres database "#{database_name}")
         display %(The error trace is \n #{e.backtrace.join("\n")})
+        raise
       ensure
         conn.finish if conn && !conn.finished?
       end
@@ -552,9 +555,10 @@ module AstroboaCLI
         display "The error is: #{res.error_message}" 
         display %(The error trace is \n #{e.backtrace.join("\n")})
         raise
-      else
+      rescue
         display %(An error has occured during the deletion of postgres database "#{database_name}")
         display %(The error trace is \n #{e.backtrace.join("\n")})
+        raise
       ensure
         conn.finish if conn && !conn.finished?
       end
