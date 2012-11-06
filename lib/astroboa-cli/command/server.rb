@@ -336,7 +336,7 @@ private
     download_package(@astroboa_setup_templates_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_setup_templates_package)) == 11030750
     
     # download astroboa schemas
-    download_package(@schemas_download_url, @install_dir) unless File.size?(File.join(@install_dir, @schemas_download_url)) == 28426
+    download_package(@schemas_download_url, @install_dir) unless File.size?(File.join(@install_dir, @schemas_package)) == 28426
   end
   
   
