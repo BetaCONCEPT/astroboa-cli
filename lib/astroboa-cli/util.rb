@@ -509,11 +509,7 @@ module AstroboaCLI
         end
       rescue PG::Error => e
         display %(An error has occured during the creation of postgres database "#{database_name}")
-        display "The error is: #{res.error_message}" 
-        display %(The error trace is \n #{e.backtrace.join("\n")})
-        raise
-      rescue
-        display %(An error has occured during the creation of postgres database "#{database_name}")
+        display %(The error is: "#{e.message}")
         display %(The error trace is \n #{e.backtrace.join("\n")})
         raise
       ensure
@@ -552,11 +548,7 @@ module AstroboaCLI
 
       rescue PG::Error => e
         display %(An error has occured during the deletion of postgres database "#{database_name}")
-        display "The error is: #{res.error_message}" 
-        display %(The error trace is \n #{e.backtrace.join("\n")})
-        raise
-      rescue
-        display %(An error has occured during the deletion of postgres database "#{database_name}")
+        display %(The error is: "#{e.message}")
         display %(The error trace is \n #{e.backtrace.join("\n")})
         raise
       ensure
