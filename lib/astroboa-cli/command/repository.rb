@@ -90,7 +90,7 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
       # save repo configuration into astroboa server config file
       add_repo_conf_to_server_conf(server_configuration, repository_name)
        
-    rescue Exception => e
+    rescue => e
       display %(An error has occured \n The error is: '#{e.to_s}' \n The error trace is: \n #{e.backtrace.join("\n")})
       display %(Repository configuration, the db and the related directories will be removed)
       unconfigure_astroboa_repo(repos_dir, repository_name)

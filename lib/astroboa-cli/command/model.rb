@@ -416,7 +416,7 @@ private
         external_schemas_validator = Nokogiri::XML::Schema(File.read(domain_model_file))
         puts 'Check if domain model properly loads and uses external schemas (i.e. astroboa model schemas + user defined schemas): OK'
         true
-      rescue Exception => e
+      rescue => e
         puts 'Check if domain model is properly loading and using external schemas (i.e. astroboa model schemas + user defined schemas): Errors found!'
         puts external_schemas_validator.errors if external_schemas_validator
         puts e.message
