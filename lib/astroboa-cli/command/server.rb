@@ -629,7 +629,7 @@ SETTINGS
   def create_central_identity_repository
     repo_name = 'identities'
     repo_config = {
-      'localized_labels' => 'en:User and App Identities,el:Ταυτότητες Χρηστών και Εφαρμογών'
+      localized_labels: 'en:User and App Identities,el:Ταυτότητες Χρηστών και Εφαρμογών'
     }
     AstroboaCLI::Command::Repository.new([repo_name], repo_config).create
     display "Create Central 'Identities and Apps' Repository with name 'identities' : OK"
