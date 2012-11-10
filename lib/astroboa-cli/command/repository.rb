@@ -19,7 +19,7 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
   # A database will also be created to store repository data (except blobs).
   # The database server, db user and db password that have been configured during astroboa server setup will be used.   
   #
-  # -l, --localized_labels REPO_LABELS      # Provide friendly labels for different languages # By default the 'REPOSITORY_NAME' will be used as the english label # Example: -l en:Dali Paintings,fr:Dali Peintures,es:Dali Pinturas
+  # -l, --localized_labels REPO_LABELS      # Provide friendly labels for different languages # The format is "locale1:localized_string1,locale2:localized_string2" # YOU SHOULD SURROUND THE LABELS WITH SINGLE OR DOUBLE QUOTES # By default the 'REPOSITORY_NAME' will be used as the english label # Example: -l "en:Dali Paintings,fr:Dali Peintures,es:Dali Pinturas"
   # -d, --domain_name REPO_DOMAIN_NAME      # Specify the fully qualified domain name and port under which all the repository resources will be exposed by the REST API # The default is 'localhost:8080' # If you specify other than the default (e.g. www.mydomain.com) you need to appropriately setup a reverse proxy in front of astroboa 
   # -p, --api_base_path REST_API_BASE_PATH  # Specify the base_path of the REST API URLs # The default is '/resource-api' # If you provide other than the default you should appropriately setup a reverse proxy in front of astroboa
   # -n, --db_name DATABASE_NAME             # Specify the name of the database to create # Default is REPOSITORY_NAME (i.e. the name of the new repository)
@@ -33,10 +33,9 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
   #
   # Specify i18n labels for the repository name.
   # Expose the repo resources under http://www.art.com/art-api/dali_paintings
-  # $ astroboa-cli repository:create dali_paintings -l en:Dali Paintings,fr:Dali Peintures,es:Dali Pinturas -d www.art.com -p art-api
+  # $ astroboa-cli repository:create dali_paintings -l "en:Dali Paintings,fr:Dali Peintures,es:Dali Pinturas" -d www.art.com -p art-api
   #
   def create
-    
     if repository_name = args.shift
       repository_name = repository_name.strip
     else
@@ -65,11 +64,6 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
       schema_dir = File.join(repo_dir, "astroboa_schemata")
       FileUtils.mkdir(schema_dir)
       display %(Create dir '#{schema_dir}': OK)
-      
-      # This is not required any more TO BE DELETED
-      #internal_repo_dir = File.join(repo_dir, "repository")
-      #FileUtils.mkdir(internal_repo_dir)
-      #display %(Create dir '#{internal_repo_dir}': OK)
     
       # create postgres database
       unless server_configuration['database'] == 'derby'
@@ -89,6 +83,29 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
       
       # save repo configuration into astroboa server config file
       add_repo_conf_to_server_conf(server_configuration, repository_name)
+      
+      # change ownership of repo dir
+      # In mac os x astroboa is installed and run under the ownership of the user that runs the installation command. 
+      # So if the same user that did the install runs the repo creation command ownership is ok.
+      # if however repo creation is done by another user (using sudo) then we need to change the ownership of repo dir 
+      # to the user that installed and thus owns astroboa.
+      if mac_os_x?
+        astroboa_owner_uid = File.stat(astroboa_dir).uid
+        astroboa_owner = Etc.getpwuid(astroboa_owner_uid).name
+        process_uid = Process.uid
+        if astroboa_owner_uid != process_uid
+          FileUtils.chown_R(astroboa_owner, nil, repo_dir)
+          display "Change (recursively) user owner of #{repo_dir} to #{astroboa_owner}: OK"
+        end
+      end
+      
+      # In linux a special user 'astroboa' and group 'astroboa' is created for owning a running astroboa.
+      # So we need to change the ownership of the installation dir and the repositories dir to 
+      # belong to user 'astroboa' and group 'astroboa'
+      if linux?
+        FileUtils.chown_R('astroboa', 'astroboa', repo_dir)
+        display "Change (recursively) user and group owner of #{repo_dir} to 'astroboa': OK"
+      end
        
     rescue => e
       display %(An error has occured \n The error is: '#{e.to_s}' \n The error trace is: \n #{e.backtrace.join("\n")})
@@ -147,19 +164,31 @@ class AstroboaCLI::Command::Repository < AstroboaCLI::Command::Base
     FileUtils.rm_r repo_dir, :secure=>true
     display "Remove #{repo_dir} : OK"
     
+    # get the name of the repo database before we remove the server configuration
+    database_name = server_configuration['repositories'][repository_name]['database']
+    
     # remove repo conf from astroboa server configuration
     delete_repo_conf_from_server_conf(server_configuration, repository_name)
     
     # remove the repo database, we leave it last so that everything else has been removed in the case something goes wrong
     # with db removal
-    begin
-      drop_postgresql_db(server_configuration, database_name) if server_configuration['database'] =~ /postgres/
-    rescue
-      display %(The repository has been disabled and all configuration and related directories have been removed except the database.)
-      display %(It is safe to manually remove the database)
-    end
+    if server_configuration['database'] =~ /postgres/
       
-
+      error <<-MSG.gsub(/^ {6}/, '') unless database_name
+      It is not possible to remove the database because the database name for this repository 
+      was not found in the server configuration file.
+      However the repository has been disabled and all configuration and related directories have been removed except the database.
+      So it is safe to manually remove the database.
+      MSG
+      
+      begin
+        drop_postgresql_db(server_configuration, database_name)
+      rescue => e
+        display %(An error has occured while deleting the database. The error is #{e.message}.)
+        display %(The repository has been disabled and all configuration and related directories have been removed except the database.)
+        display %(It is safe to manually remove the database)
+      end
+    end
   end
   
   
@@ -333,11 +362,11 @@ private
     if conf_exists
       current_date = DateTime.now().strftime('%Y-%m-%dT%H.%M')
       FileUtils.cp astroboa_repos_config, "#{astroboa_repos_config}.#{current_date}"
-      display %(Save previous repositories configuration file to #{astroboa_repos_config}.#{current_date} : OK)
+      display %(Save previous repositories configuration file to '#{astroboa_repos_config}.#{current_date}' : OK)
     end
     
     FileUtils.mv new_astroboa_repos_config, astroboa_repos_config
-    display %(Created new repositories configuration file #{astroboa_repos_config})
+    display %(Create new repositories configuration file '#{astroboa_repos_config}' : OK)
   end
   
   
@@ -380,6 +409,7 @@ private
     repo_domain_name = options[:domain_name] ||= 'localhost:8080'
     api_base_path = options[:api_base_path] ||= '/resource-api'
     localized_labels = options[:localized_labels] ||= "en:#{repository_name}"
+    database_name = options[:db_name] ||= repository_name
     
     server_configuration['repositories'] ||= {}
     repository = {}
@@ -388,6 +418,7 @@ private
     repository['serverAliasURL'] = "http://#{repo_domain_name}"
     repository['restfulApiBasePath'] = api_base_path
     repository['localized_labels'] = localized_labels
+    repository['database'] = database_name
     server_configuration['repositories'][repository_name] = repository
     save_server_configuration(server_configuration)
     display "Add repository configuration to server configuration file '#{get_server_conf_file}' : OK"
