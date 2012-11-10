@@ -8,7 +8,11 @@ It has easy to use commands for installing astroboa platform, creating new repos
 ## Prerequisites
 * Linux or MAC OS X operating system. Windows is not yet supported
 
-* OPTIONAL BUILD TOOLS: In MAC OS X is strongly recommended to install 'brew' package manager as well as XCODE and XCODE command line tools in order to be able to compile new packages and ruby native extensions.
+* OPTIONAL BUILD TOOLS: 
+	* In MAC OS X is strongly recommended to install 'brew' package manager as well as XCODE 
+		and XCODE command line tools in order to be able to compile new packages and ruby native extensions.
+	* If you're running Ubuntu, you must install the build-essential package (apt-get install build-essential) 
+		because some required gems (nokogiri, pg) build native extensions and require the make utility.
 
 * Java 1.6.x is required for running astroboa server. 
 	* If you consider a production system use **Sun/Oracle JDK**. For testing/development **OpenJDK** can be ok but we have not exhaustively tested it.  
