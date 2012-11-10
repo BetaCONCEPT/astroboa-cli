@@ -21,14 +21,25 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # + You should have already installed java 1.6 and ruby 1.9.x
   # + You are running this command from ruby version 1.9.x or later
   # + You should have the unzip command. It is required for unzipping the downloaded packages
-  # + If you choose a database other than derby then the database should be already installed and running and you should know the db admin account password
+  # + If you choose a database other than derby then the database should be already installed and running and you should know the db admin user and password
   #
   # -i, --install_dir INSTALLATION_DIRECTORY    # The full path to the directory into which to install astroboa # Default is '/opt/astroboa' in linux and '$HOME/astroboa' in mac os x and windows
   # -r, --repo_dir REPOSITORIES_DIRECTORY       # The full path of the directory that will contain the repositories configuration and data # Default is $installation_dir/repositories
   # -d, --database DATABASE_VENDOR              # Select which database to use for data persistense # Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1 # Default is derby
   # -s, --database_server DATABASE_SERVER_IP    # Specify the database server ip or FQDN (e.g 192.168.1.100 or postgres.localdomain.vpn) # Default is localhost # Not required if db is derby (it will be ignored)
-  # -u, --database_admin DB_ADMIN_USER          # The user name of the database administrator # If not specified it will default to 'postgres' for postgresql db # Not required if db is derby (it will be ignored) 
-  # -p, --database_admin_password PASSWORD      # The password of the database administrator # Defaults to empty string # Not required if database is derby (it will be ignored)
+  # -u, --database_admin DB_ADMIN_USER          # The user name of the database administrator # If not specified it will default to 'postgres' for postgresql db # Not required if db is derby (it will be ignored)      
+  #
+  # For security reasons (to avoid leaving the password in command history) there is no command option 
+  # for specifing the password of the database administrator. 
+  # But do not worry, the password will be asked from you during the installation process 
+  # A db password is required only if you choose postgres as your database.
+  # If you require to do an unattended, non-interactive installation (e.g. run astroboa-cli from chef or puppet) 
+  # then you can call astroboa-cli like this:
+  # $ echo "postgres_admin_password" | astroboa-cli server:install -d postgres-9.1
+  # Take care that the db password is saved for later use (repositories creation / deletion) 
+  # in astroboa server config (~/.astoboa-conf.yml in mac and /etc/astroboa/astroboa-conf.yml in linux).
+  # This file is created to be readable / writable only by root in linux 
+  # and only by the user that does the installation in mac os x.
   #
   def install
     @torquebox_download_url = 'http://www.astroboa.org/releases/astroboa/latest/torquebox-dist-2.0.3-bin.zip'
@@ -70,7 +81,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     
     if @database.split("-").first == "postgres"
       @database_admin = options[:database_admin] ||= "postgres"
-      @database_admin_password = options[:database_admin_password] ||= ""
+      @database_admin_password = get_password("Please enter the password for postgresql admin user '#{@database_admin}': ")
     else
       @database_admin = "sa"
       @database_admin_password = ""
@@ -237,14 +248,38 @@ private
     # check if unzip command is available
     check_if_unzip_is_installed
     
-    # check if 'pg' gem is installed if repositories will be backed by postgres
-    error <<-MSG.gsub(/^ {4}/, '') if @database.split("-").first == "postgres" && !gem_available?('pg')
-    You should manually install the 'pg' gem if you want to create repositories backed by postgres
-    astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require 
-    to have a local postgres already installed, which in turn is too much if you do not care about postgres.
-  	In *Ubuntu Linux* run first 'sudo apt-get install libpq-dev' and then run 'gem install pg'.
-  	For MAC OS x read http://deveiate.org/code/pg/README-OS_X_rdoc.html to learn how to install the 'pg' gem.
-    MSG
+    #if repositories will be backed by postgres
+    if @database.split("-").first == "postgres"
+      
+      # check if 'pg' gem is installed 
+      if gem_available?('pg')
+        display "Checking if 'pg' gem is installed (required for creating postgres db): OK"
+      else
+        error <<-MSG.gsub(/^ {4}/, '')
+        You should manually install the 'pg' gem if you want to create repositories backed by postgres
+        astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require 
+        to have a local postgres already installed, which in turn is too much if you do not care about postgres.
+      	In *Ubuntu Linux* run first 'sudo apt-get install libpq-dev' and then run 'gem install pg'.
+      	For MAC OS x read http://deveiate.org/code/pg/README-OS_X_rdoc.html to learn how to install the 'pg' gem.
+        MSG
+      end
+    
+      # check if we can connect to postgres with the specified db admin account
+      if postgres_connectivity?(@database_server, @database_admin, @database_admin_password)
+        display "Checking if we can connect to postgres with the specified db admin account: OK"
+      else
+        error <<-MSG.gsub(/^ {4}/, '')
+        Could not connect to the postgres db server (@database_server) 
+        with the db admin user (@database_admin) and the password you have specified.
+        Please check that the db admin user and the password are correct.
+        Also check that the postgres server ip or fqdn is correct and that postgres 
+        has been properly setup to accept connections from this machine (check where postgres listens in postgres.conf 
+        and also check ip/user restrictions in pg_hba.conf).
+        Finally check that there are no firewall rules in this machine or in the machine
+        that postgres runs that prevent the connection (postgres runs by default on port 5432)
+        MSG
+      end
+    end
   end
   
   
@@ -584,6 +619,10 @@ SETTINGS
       f.write(YAML.dump(server_config))
     end
     display "The server configuration have been added to configuration file '#{config_file}'"
+    
+    # config file has sensitive info like the db admin password
+    # let's protect it from reading by others
+    FileUtils.chmod 0600, config_file
   end
   
   
@@ -598,7 +637,7 @@ SETTINGS
   
   def set_astroboa_owner
     # In mac os x astroboa is installed and run under the ownership of the user that runs the installation command. 
-    # If installation is done with sudo then we need to change the ownership of astroboa installation to the current user.
+    # If installation is done with sudo (i.e. when installation dir is not in users home) then we need to change the ownership of astroboa installation to the current user.
     if mac_os_x? && running_with_sudo?
       user = ENV['USER']
       FileUtils.chown_R(user, nil, @install_dir)
