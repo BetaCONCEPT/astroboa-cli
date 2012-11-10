@@ -3,6 +3,7 @@
 require 'yaml'
 require 'zip/zip'
 require 'nokogiri'
+require 'colorize'
 
 module AstroboaCLI
   module Util
@@ -463,23 +464,43 @@ module AstroboaCLI
     end
     
     
-    def load_pg_library(server_configuration)
+    def load_pg_library
       # try to load the 'pg' library if repository is backed by postgres 
-      unless server_configuration['database'] == 'derby'
-        error <<-MSG unless gem_available?('pg')
-        You should manually install the 'pg' gem if you want to create repositories backed by postgres
-        astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require 
-        to have a local postgres already installed, which in turn is too much if you do not care about postgres.
-      	In *Ubuntu Linux* run first 'sudo apt-get install libpq-dev' and then run 'gem install pg'.
-      	For MAC OS x read http://deveiate.org/code/pg/README-OS_X_rdoc.html to learn how to install the 'pg' gem.
-        MSG
+      error <<-MSG unless gem_available?('pg')
+      You should manually install the 'pg' gem if you want to create repositories backed by postgres
+      astroboa-cli gem does not automatically install 'pg' gem since in some environments (e.g. MAC OS X) this might require 
+      to have a local postgres already installed, which in turn is too much if you do not care about postgres.
+    	In *Ubuntu Linux* run first 'sudo apt-get install libpq-dev' and then run 'gem install pg'.
+    	For MAC OS x read http://deveiate.org/code/pg/README-OS_X_rdoc.html to learn how to install the 'pg' gem.
+      MSG
 
-        require 'pg'
-      end   
+      require 'pg'  
     end
     
+    
+    def postgres_connectivity?(database_server, database_user, database_user_password)
+      load_pg_library
+      
+      begin
+        conn = PG.connect(
+          host:     database_server, 
+          port:     '5432', 
+          dbname:   'postgres', 
+          user:     database_user, 
+          password: database_user_password)
+          conn != nil ? true : false
+      rescue PG::Error => e
+        display %(An error has occured while trying to establish a connection to postgres database)
+        display %(The error is: "#{e.message}")
+        false
+      ensure
+        conn.finish if conn && !conn.finished?
+      end
+    end
+    
+    
     def create_postgresql_db(server_configuration, database_name)
-      load_pg_library(server_configuration)
+      load_pg_library
       
       database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
       
@@ -519,7 +540,7 @@ module AstroboaCLI
 
 
     def drop_postgresql_db(server_configuration, database_name)
-      load_pg_library(server_configuration)
+      load_pg_library
       
       database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
       
@@ -533,12 +554,12 @@ module AstroboaCLI
 
         # check if db exists
         res = conn.exec("SELECT COUNT(*) FROM pg_database WHERE datname=$1",[database_name])
-        unless res.entries[0]['count'] == 0 
+        if res.entries[0]['count'] == 0 
           display "Cannot remove database #{database_name} because it does not exist"
           raise
         end
 
-        res = conn.exec("DROP DATABASE $1", [database_name])
+        res = conn.exec("DROP DATABASE #{database_name}")
         if res.result_status == PG::Result::PGRES_COMMAND_OK
           display %(Delete Postges database "#{database_name}" : OK)
         else
@@ -578,55 +599,18 @@ module AstroboaCLI
     end
     
     
-    # Not used because only works in jruby, TO BE REMOVED
-    def create_postgresql_db_with_jdbc(server_configuration, database_name, repo_dir)
-      database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
+    def get_password(msg)
+      password = ""
+      print msg.blue.underline
       begin
-        ActiveRecord::Base.establish_connection(
-          :adapter    => 'jdbcpostgresql',
-          :database   => "postgres", 
-          :username   => database_admin,
-          :password   => database_admin_password,
-          :host       => database_server, 
-          :port       => 5432)
-        ActiveRecord::Base.connection.create_database database_name, :encoding => 'unicode'
-        ActiveRecord::Base.connection.disconnect!
-        ActiveRecord::Base.remove_connection
-
-        display %(Create Postges database "#{database_name}" : OK)
-      rescue ActiveRecord::StatementInvalid => e
-        if e.message =~ /database "#{database_name}" already exists/
-          display "Database #{database_name} exists. You may run the command with --db_name repo_db_name to specify a different database name"
-        else
-          display %(An error has occured during the creation of postgres database "#{database_name}")
-          display %(The error trace is \n #{e.backtrace.join("\n")})
-        end
-
-        raise
-      end
-    end
-
-
-    # Not used because only works in jruby, TO BE REMOVED
-    def drop_postgresql_db_with_jdbc(server_configuration, database_name)
-      database_admin, database_admin_password, database_server = get_postgresql_config(server_configuration)
-      begin
-        ActiveRecord::Base.establish_connection(
-          :adapter    => 'jdbcpostgresql',
-          :database   => "postgres", 
-          :username   => database_admin,
-          :password   => database_admin_password,
-          :host       => database_server, 
-          :port       => 5432)
-        ActiveRecord::Base.connection.drop_database database_name
-        ActiveRecord::Base.connection.disconnect!
-        ActiveRecord::Base.remove_connection
-
-        display %(Delete Postges database "#{database_name}" : OK)
-      rescue ActiveRecord::StatementInvalid => e
-        display %(An error has occured during the deletion of postgres database "#{database_name}")
-        display %(The error trace is \n #{e.backtrace.join("\n")})
-        raise
+        system "stty -echo 2>/dev/null"
+        password = STDIN.gets.chomp
+        system "stty echo 2>/dev/null"
+        puts
+        password
+      rescue => e
+        system "stty echo"
+        error "An error occurred. The error is: #{e.message}"
       end
     end
     
