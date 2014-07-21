@@ -8,7 +8,7 @@ It has easy to use commands for installing astroboa platform, creating new repos
 ## Prerequisites
 * Linux or MAC OS X operating system. Windows is not yet supported
 
-* OPTIONAL BUILD TOOLS: 
+* BUILD TOOLS: 
 	* In MAC OS X is strongly recommended to install 'brew' package manager as well as XCODE 
 		and XCODE command line tools in order to be able to compile new packages and ruby native extensions.
 	* If you're running Ubuntu, you must install the build-essential package (apt-get install build-essential) 
