@@ -353,7 +353,7 @@ module AstroboaCLI
 
       ruby_version_numbers = RUBY_VERSION.split(".")
 
-      return false unless ruby_version_numbers[0].to_i == 1 && ruby_version_numbers[1].to_i >= 9
+      return false unless (ruby_version_numbers[0].to_i == 1 && ruby_version_numbers[1].to_i >= 9) || ruby_version_numbers[0].to_i == 2
       return true
     end
     
@@ -369,19 +369,19 @@ module AstroboaCLI
         $ brew install rbenv
         $ brew install ruby-build
 
-      To install ruby version 1.9.3-p194 do:
-        $ rbenv install 1.9.3-p194
+      To install ruby version 2.1.1 do:
+        $ rbenv install 2.1.1
 
       To set the global version of Ruby to be used in all your shells do:
-        $ rbenv global 1.9.3-p194
+        $ rbenv global 2.1.1
 
-      To set ruby 1.9.3-p194 as a local per-project ruby version by writing the version name to an .rbenv-version file in the current directory do:
+      To set ruby 2.1.1 as a local per-project ruby version by writing the version name to an .rbenv-version file in the current directory do:
 
-        $ rbenv local 1.9.3-p194
+        $ rbenv local 2.1.1
 
-      To set ruby 1.9.3-p194 as the version to be used only in the current shell (sets the RBENV_VERSION environment variable in your shell) do:
+      To set ruby 2.1.1 as the version to be used only in the current shell (sets the RBENV_VERSION environment variable in your shell) do:
 
-        $ rbenv shell 1.9.3-p194
+        $ rbenv shell 2.1.1
 
       ------------------------------- 
       If you prefer to use 'rvm' as your ruby management utility use the following command to install it for a single user:
@@ -390,15 +390,15 @@ module AstroboaCLI
 
       For multi-user installation and detailed rvm installation instructions check: https://rvm.io/rvm/install/    
 
-      After 'rvm' has been installed run the following commands to install ruby 1.9.3-p194:
-      rvm install 1.9.3-p194
-      rvm use 1.9.3-p194
+      After 'rvm' has been installed run the following commands to install ruby 2.1.1:
+      rvm install 2.1.1
+      rvm use 2.1.1
       RUBY_INSTALL_MESSAGE
 
       ruby_wrong_version_message =<<-RUBY_VERSION_MESSAGE
-      It seems that you are not running ruby 1.9.x.
+      It seems that you are not running ruby 1.9.x. or later
       Your current Ruby Version is: #{RUBY_VERSION} 
-      Astroboa CLI requires your ruby version to be 1.9.x (e.g. 1.9.2 or 1.9.3).
+      Astroboa CLI requires your ruby version to be 1.9.x or later (e.g. 1.9.2 or 1.9.3 or 2.1.1).
 
       #{ruby_installation_instructions_message}
       RUBY_VERSION_MESSAGE

@@ -18,14 +18,14 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # Installs and setups astroboa server.
   # Use the install command only for the initial installation. If you want to upgrade see 'astroboa-cli help server:upgrade'
   # Before you run the install command check the following requirements: 
-  # + You should have already installed java 1.6 and ruby 1.9.x
+  # + You should have already installed java 1.7 and ruby 1.9.x or later
   # + You are running this command from ruby version 1.9.x or later
   # + You should have the unzip command. It is required for unzipping the downloaded packages
   # + If you choose a database other than derby then the database should be already installed and running and you should know the db admin user and password
   #
   # -i, --install_dir INSTALLATION_DIRECTORY    # The full path to the directory into which to install astroboa # Default is '/opt/astroboa' in linux and '$HOME/astroboa' in mac os x and windows
   # -r, --repo_dir REPOSITORIES_DIRECTORY       # The full path of the directory that will contain the repositories configuration and data # Default is $installation_dir/repositories
-  # -d, --database DATABASE_VENDOR              # Select which database to use for data persistense # Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1 # Default is derby
+  # -d, --database DATABASE_VENDOR              # Select which database to use for data persistense # Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1, postgres-9.2, postgres-9.3  # Default is derby
   # -s, --database_server DATABASE_SERVER_IP    # Specify the database server ip or FQDN (e.g 192.168.1.100 or postgres.localdomain.vpn) # Default is localhost # Not required if db is derby (it will be ignored)
   # -u, --database_admin DB_ADMIN_USER          # The user name of the database administrator # If not specified it will default to 'postgres' for postgresql db # Not required if db is derby (it will be ignored)      
   #
@@ -35,7 +35,7 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
   # A db password is required only if you choose postgres as your database.
   # If you require to do an unattended, non-interactive installation (e.g. run astroboa-cli from chef or puppet) 
   # then you can call astroboa-cli like this:
-  # $ echo "postgres_admin_password" | astroboa-cli server:install -d postgres-9.1
+  # $ echo "postgres_admin_password" | astroboa-cli server:install -d postgres-9.3
   # Take care that the db password is saved for later use (repositories creation / deletion) 
   # in astroboa server config (~/.astoboa-conf.yml in mac and /etc/astroboa/astroboa-conf.yml in linux).
   # This file is created to be readable / writable only by root in linux 
@@ -74,10 +74,10 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     
     db_error_message =<<-MSG.gsub(/^ {4}/, '')
     The selected database '#{@database}' is not supported. 
-    Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1
+    Supported databases are: derby, postgres-8.2, postgres-8.3, postgres-8.4, postgres-9.0, postgres-9.1, postgres-9.2, postgres-9.3
     MSG
     
-    error db_error_message unless %W(derby postgres-8.2 postgres-8.3 postgres-8.4 postgres-9.0 postgres-9.1).include?(@database)
+    error db_error_message unless %W(derby postgres-8.2 postgres-8.3 postgres-8.4 postgres-9.0 postgres-9.1 postgres-9.2 postgres-9.3).include?(@database)
     
     if @database.split("-").first == "postgres"
       @database_admin = options[:database_admin] ||= "postgres"
@@ -368,7 +368,7 @@ private
     download_package(@astroboa_version_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_version_file)) == 15
     
     # download astroboa setup templates
-    download_package(@astroboa_setup_templates_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_setup_templates_package)) == 11030750
+    download_package(@astroboa_setup_templates_download_url, @install_dir) unless File.size?(File.join(@install_dir, @astroboa_setup_templates_package)) == 12149861
     
     # download astroboa schemas
     download_package(@schemas_download_url, @install_dir) unless File.size?(File.join(@install_dir, @schemas_package)) == 28426
@@ -549,9 +549,9 @@ SETTINGS
     display "Copying derby jdbc driver module into jboss modules #{("(derby module is installed even if postgres has been selected)" unless @database == 'derby')}: OK"
     # copy postgres driver
     # if postgres has been specified in options then install the drivers for the specified version
-    # else install drivers for postgres 9.1
+    # else install drivers for postgres 9.3
     postgres_db = @database
-    postgres_db = 'postgres-9.1' if @database == 'derby'
+    postgres_db = 'postgres-9.3' if @database == 'derby'
     FileUtils.cp_r File.join(astroboa_setup_templates_dir, "jdbc-drivers", postgres_db, "org"), jboss_modules_dir
     display %(Copying #{postgres_db} jdbc driver module into jboss modules #{("(postgres drivers are copied even if derby has been selected)" if @database == 'derby')}: OK)
   end

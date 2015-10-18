@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.version = AstroboaCLI::VERSION
   s.platform = Gem::Platform::RUBY
   s.authors = ["BETACONCEPT","Gregory Chomatas"]
-  s.email = ["support@betaconcept.com"]
+  s.email = ["gchomatas@betaconcept.com"]
   s.homepage = "http://www.astroboa.org"
   s.date = Date.today.to_s
   s.summary = %q{Astroboa Command Line Interface for astroboa platform and astroboa apps management.}
@@ -29,5 +29,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'erubis'
   s.add_runtime_dependency 'nokogiri', '>= 1.5.5'
   s.add_runtime_dependency 'colorize'
+  s.add_runtime_dependency 'zip-zip'
   s.executables = ["astroboa-cli"]
 end
