@@ -178,6 +178,9 @@ class AstroboaCLI::Command::Server < AstroboaCLI::Command::Base
     end
         
     if options[:background]
+      ENV['JBOSS_PIDFILE'] = '/var/run/astroboa/astroboa.pid'
+      ENV['LAUNCH_JBOSS_IN_BACKGROUND'] = 'true'
+
       display "Astroboa is starting in the background..."
       display "You can check the log file with 'tail -f #{jboss_log_file}'"
       display "When server startup has finished access astroboa console at: http://localhost:8080/console"
